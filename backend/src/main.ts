@@ -2,17 +2,47 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
+const DEFAULT_CORS_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://tamanlogistics.vn',
+  'https://www.tamanlogistics.vn',
+  'https://admin.tamanlogistics.vn',
+];
+
+function getCorsOrigins(): string[] {
+  const fromEnv = process.env.CORS_ORIGINS?.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  if (fromEnv?.length) return fromEnv;
+
+  if (process.env.NODE_ENV === 'production') {
+    return DEFAULT_CORS_ORIGINS.filter((o) => o.startsWith('https://'));
+  }
+
+  return DEFAULT_CORS_ORIGINS;
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  // Enable CORS
+  const allowedOrigins = getCorsOrigins();
+
   app.enableCors({
-    origin: '*', // For development, allow all. Change in production.
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    // Token gửi qua Authorization header, không dùng cookie cross-site
+    credentials: false,
+    maxAge: 86400,
   });
 
-  // Enable global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -24,5 +54,6 @@ async function bootstrap() {
   const port = process.env.PORT || 4000;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`CORS origins: ${allowedOrigins.join(', ')}`);
 }
 bootstrap();
