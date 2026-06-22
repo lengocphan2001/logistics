@@ -56,14 +56,37 @@ Chạy các truy vấn sau bên trong Postgres CLI:
 CREATE DATABASE logistics;
 
 -- Tạo User mới với mật khẩu mạnh
-CREATE USER logistics_user WITH PASSWORD 'password';
+CREATE USER logistics_user WITH PASSWORD 'MatKhauSieuManh123';
 
--- Cấp toàn quyền trên DB logistics cho User vừa tạo
+-- Cấp quyền kết nối database
 GRANT ALL PRIVILEGES ON DATABASE logistics TO logistics_user;
+
+-- Bắt buộc với PostgreSQL 15+: cấp quyền trên schema public
+\c logistics
+GRANT USAGE, CREATE ON SCHEMA public TO logistics_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO logistics_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO logistics_user;
+
+-- (Khuyến nghị) Chuyển owner schema public cho user ứng dụng
+ALTER SCHEMA public OWNER TO logistics_user;
 
 -- Thoát khỏi postgres CLI
 \q
 ```
+
+> **Lỗi `permission denied for schema public` khi chạy `prisma db push`?**  
+> Database đã tạo trước đó nhưng thiếu quyền schema. Chạy lại (với user `postgres`):
+> ```bash
+> sudo -i -u postgres psql -d logistics
+> ```
+> ```sql
+> GRANT USAGE, CREATE ON SCHEMA public TO logistics_user;
+> ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO logistics_user;
+> ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO logistics_user;
+> ALTER SCHEMA public OWNER TO logistics_user;
+> \q
+> ```
+> Sau đó chạy lại: `npx prisma db push`
 
 ### 2.3 Cài đặt Git, PM2 và Nginx
 ```bash
@@ -95,19 +118,22 @@ Nội dung file `.env` trên môi trường Production:
 ```env
 PORT=4000
 NODE_ENV=production
-DATABASE_URL="postgresql://logistics_user:MatKhauSieuManh123@localhost:5432/logistics?schema=public"
+DATABASE_URL="postgresql://logistics_user:password@localhost:5432/logistics?schema=public"
 JWT_SECRET="ChuoiKyTuBaoMatNgauNhienSieuDaiCuaBan"
 JWT_EXPIRES_IN=7d
 ```
 Cài đặt dependencies, đồng bộ schema Prisma và build dự án:
 ```bash
-npm install --omit=dev  # Cài dependencies production
-npx prisma db push      # Đồng bộ schema.prisma vào DB (thay cho migrate)
+npm install              # Cài đủ deps để build (gồm prisma, typescript)
+npx prisma db push       # Đồng bộ schema.prisma vào DB (thay cho migrate)
 npx prisma generate
-npm run prisma:seed # Nạp dữ liệu tài khoản admin ban đầu nếu cần
-npm run build
+npm run build            # Build NestJS + compile seed (dist/prisma/seed.js)
+npm run prisma:seed      # Nạp tài khoản admin mặc định (chạy sau build)
+npm prune --omit=dev     # (Tùy chọn) Gỡ devDependencies sau khi build xong
 cd ..
 ```
+
+> **Lưu ý `prisma:seed`**: Script dùng `node dist/prisma/seed.js`, **không** dùng `ts-node`. Phải chạy `npm run build` trước `npm run prisma:seed`. Trên máy dev local: `npm run prisma:seed:dev` nếu chưa build.
 
 ### 3.2 Cấu hình & Build Admin Panel (Next.js)
 Di chuyển vào thư mục admin và tạo cấu hình:
