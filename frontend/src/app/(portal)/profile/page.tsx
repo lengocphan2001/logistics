@@ -106,7 +106,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl space-y-6">
+    <div className="max-w-2xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <User className="w-6 h-6 text-primary" />

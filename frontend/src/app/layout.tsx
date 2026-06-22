@@ -16,8 +16,14 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Logistics — Vận chuyển thông minh',
-  description: 'Nền tảng logistics hiện đại, theo dõi đơn hàng và vận chuyển realtime',
+  title: 'Taman Logistics — Vận chuyển Trung - Việt',
+  description:
+    'Nền tảng logistics hiện đại: ký gửi, mua hộ, ví ¥ và theo dõi đơn hàng Trung Quốc về Việt Nam.',
+  openGraph: {
+    title: 'Taman Logistics',
+    description: 'Vận chuyển quốc tế mượt mà & minh bạch',
+    siteName: 'Taman Logistics',
+  },
 };
 
 export default function RootLayout({

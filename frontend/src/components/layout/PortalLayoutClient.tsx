@@ -2,36 +2,36 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
-import { PortalHeader, PortalSidebar } from '@/components/layout/PortalShell';
+import { getToken } from '@/lib/auth';
+import { PortalShell } from '@/components/layout/PortalShell';
 
-export function PortalLayoutClient({
-  children,
-  title,
-}: {
-  children: React.ReactNode;
-  title?: string;
-}) {
+export function PortalLayoutClient({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!hasHydrated) return;
+
+    const authed = isAuthenticated || !!getToken();
+    if (!authed) {
       router.replace('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  if (!hasHydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--brand-surface)]">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--brand-accent)]" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && !getToken()) {
     return null;
   }
 
-  return (
-    <div className="flex min-h-screen bg-background">
-      <PortalSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <PortalHeader title={title} />
-        <main className="flex-1 overflow-auto">{children}</main>
-      </div>
-    </div>
-  );
+  return <PortalShell>{children}</PortalShell>;
 }

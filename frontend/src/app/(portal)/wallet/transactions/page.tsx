@@ -41,7 +41,7 @@ export default function WalletTransactionsPage() {
   }, [typeFilter, statusFilter]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <History className="w-6 h-6 text-primary" />

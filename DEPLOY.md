@@ -187,7 +187,7 @@ module.exports = {
   apps: [
     {
       name: 'logistics-backend',
-      script: 'dist/main.js',
+      script: 'dist/src/main.js',
       cwd: '/var/www/logistics/backend',
       env: {
         NODE_ENV: 'production',
@@ -218,7 +218,12 @@ module.exports = {
 
 Khởi chạy ứng dụng với PM2:
 ```bash
+# Đảm bảo backend đã build (tạo dist/src/main.js)
+cd /var/www/logistics/backend && npm run build && cd ..
+
 pm2 start ecosystem.config.js
+# Hoặc nếu đã chạy rồi:
+pm2 restart ecosystem.config.js
 ```
 
 Để cấu hình PM2 tự động chạy khi Ubuntu Server reboot:

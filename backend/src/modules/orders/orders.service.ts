@@ -315,4 +315,89 @@ export class OrdersService {
       revenue: revenue._sum,
     };
   }
+
+  async findAllForCustomer(
+    customerId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      status?: OrderStatus;
+      type?: OrderType;
+      search?: string;
+    },
+  ) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = { customerId };
+
+    if (params.status) where.status = params.status;
+    if (params.type) where.type = params.type;
+
+    if (params.search) {
+      where.OR = [
+        { billOfLadingCode: { contains: params.search, mode: 'insensitive' } },
+        { description: { contains: params.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        select: {
+          id: true,
+          billOfLadingCode: true,
+          type: true,
+          status: true,
+          paymentStatus: true,
+          totalFee: true,
+          depositAmount: true,
+          declaredValue: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async getStatsForCustomer(customerId: string) {
+    const [total, byType] = await Promise.all([
+      this.prisma.order.count({ where: { customerId } }),
+      this.prisma.order.groupBy({
+        by: ['type'],
+        where: { customerId },
+        _count: { id: true },
+      }),
+    ]);
+
+    const typeCounts = byType.reduce<Record<string, number>>((acc, row) => {
+      acc[row.type] = row._count.id;
+      return acc;
+    }, {});
+
+    return { total, byType: typeCounts };
+  }
+
+  async findOneForCustomer(customerId: string, id: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id, customerId },
+      include: {
+        events: { orderBy: { createdAt: 'desc' }, take: 20 },
+        warehouse: { select: { id: true, name: true, code: true } },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+
+    return order;
+  }
 }

@@ -45,6 +45,22 @@
   --radius-2xl: calc(var(--radius) * 1.8);
 }
 
+/* ─── Brand (nâu vàng — landing & auth) ─── */
+:root {
+  --brand-primary: oklch(0.58 0.11 78);
+  --brand-primary-light: oklch(0.62 0.12 80);
+  --brand-primary-dark: oklch(0.46 0.095 72);
+  --brand-surface: oklch(0.975 0.018 88);
+  --brand-surface-muted: oklch(0.94 0.02 85);
+  --brand-foreground: oklch(0.28 0.04 75);
+  --brand-body: oklch(0.38 0.045 72);
+  --brand-muted: oklch(0.48 0.04 75);
+  --brand-border: oklch(0.88 0.025 85);
+  --brand-accent: oklch(0.5 0.1 72);
+  --brand-hero-text: oklch(0.98 0.012 92);
+  --brand-hero-muted: oklch(0.92 0.03 88 / 88%);
+}
+
 /* ─── Light theme ─── */
 :root {
   --background: oklch(0.985 0.004 250);
@@ -63,7 +79,7 @@
   --secondary-foreground: oklch(0.28 0.035 264);
 
   --muted: oklch(0.96 0.006 250);
-  --muted-foreground: oklch(0.44 0.025 255);
+  --muted-foreground: oklch(0.38 0.03 255);
 
   --accent: oklch(0.94 0.025 264);
   --accent-foreground: oklch(0.28 0.08 264);
@@ -149,9 +165,6 @@
   h1, h2, h3, h4, h5, h6 {
     @apply text-foreground;
   }
-  p {
-    @apply text-foreground/90;
-  }
 }
 
 *,
@@ -179,5 +192,206 @@
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.54 0.22 264 / 60%);
+  background: oklch(0.5 0.1 72 / 55%);
+}
+
+/* ─── Landing page ─── */
+.landing-page {
+  --background: var(--brand-surface);
+  --foreground: var(--brand-foreground);
+  --card: oklch(0.995 0.012 90);
+  --card-foreground: var(--brand-foreground);
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-hero-text);
+  --secondary: var(--brand-surface-muted);
+  --secondary-foreground: var(--brand-foreground);
+  --muted: var(--brand-surface-muted);
+  --muted-foreground: var(--brand-muted);
+  --accent: oklch(0.92 0.035 82);
+  --accent-foreground: var(--brand-accent);
+  --border: var(--brand-border);
+  --ring: oklch(0.58 0.11 78 / 35%);
+  --landing-body: var(--brand-body);
+  --landing-subtle: var(--brand-muted);
+}
+
+.landing-section-label {
+  @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider;
+  border-color: oklch(0.58 0.11 78 / 28%);
+  background: oklch(0.58 0.11 78 / 10%);
+  color: var(--brand-accent);
+}
+
+.landing-gradient-text {
+  background: linear-gradient(
+    120deg,
+    oklch(0.46 0.1 72) 0%,
+    oklch(0.54 0.11 78) 50%,
+    oklch(0.58 0.09 85) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: var(--brand-accent);
+  -webkit-text-fill-color: transparent;
+}
+
+@supports not (background-clip: text) {
+  .landing-gradient-text {
+    color: var(--brand-accent);
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+.landing-grid {
+  background-image:
+    linear-gradient(oklch(0.58 0.11 78 / 7%) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.58 0.11 78 / 7%) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent);
+}
+
+.landing-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.landing-orb-a {
+  top: -10%;
+  right: -5%;
+  width: 220px;
+  height: 220px;
+  background: oklch(0.62 0.12 80 / 28%);
+  animation: landing-float-a 8s ease-in-out infinite;
+}
+
+.landing-orb-b {
+  bottom: 5%;
+  left: -8%;
+  width: 180px;
+  height: 180px;
+  background: oklch(0.72 0.1 85 / 22%);
+  animation: landing-float-b 10s ease-in-out infinite;
+}
+
+@keyframes landing-float-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-12px, 16px, 0);
+  }
+}
+
+@keyframes landing-float-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(14px, -12px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-orb-a,
+  .landing-orb-b {
+    animation: none;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ─── Auth pages (login / register) ─── */
+.auth-page {
+  --auth-primary: var(--brand-primary);
+  --auth-primary-dark: var(--brand-primary-dark);
+  --auth-surface: var(--brand-surface);
+  --auth-hero-text: var(--brand-hero-text);
+  --auth-hero-muted: var(--brand-hero-muted);
+  --auth-body-muted: var(--brand-muted);
+  --auth-border: var(--brand-border);
+  --auth-accent: var(--brand-accent);
+}
+
+.auth-hero {
+  background: linear-gradient(
+    165deg,
+    var(--brand-primary-light) 0%,
+    var(--auth-primary) 42%,
+    var(--auth-primary-dark) 100%
+  );
+}
+
+.auth-hero-glow {
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 280px;
+  height: 280px;
+  border-radius: 9999px;
+  background: oklch(0.78 0.1 85 / 18%);
+  filter: blur(48px);
+}
+
+.auth-hero-curve {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2.75rem;
+  background: var(--auth-surface);
+  border-top-left-radius: 2.5rem;
+  border-top-right-radius: 2.5rem;
+}
+
+@media (min-width: 1024px) {
+  .auth-hero::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 3rem;
+    background: var(--auth-surface);
+    border-top-left-radius: 2.5rem;
+    border-bottom-left-radius: 2.5rem;
+  }
+}
+
+/* ─── Customer portal ─── */
+.portal-shell {
+  --portal-bg: var(--brand-surface);
+  --portal-topbar: oklch(0.97 0.016 88);
+  --portal-foreground: var(--brand-foreground);
+  --portal-body: var(--brand-body);
+  --portal-muted: var(--brand-muted);
+  --portal-border: var(--brand-border);
+  --background: var(--portal-bg);
+  --foreground: var(--portal-foreground);
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-hero-text);
+  --card: oklch(0.995 0.012 90);
+  --muted: var(--brand-surface-muted);
+  --border: var(--portal-border);
+}
+
+.portal-nav-bar {
+  background: linear-gradient(
+    90deg,
+    var(--brand-primary-dark) 0%,
+    var(--brand-primary) 55%,
+    oklch(0.54 0.1 82) 100%
+  );
 }
