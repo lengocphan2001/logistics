@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# NestJS build
+dist/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test
+coverage/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
