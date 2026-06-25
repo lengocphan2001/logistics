@@ -10,6 +10,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { SettingsService } from '../settings/settings.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateWalletTransactionDto } from './dto/create-wallet-transaction.dto';
 import { RequestWalletTransactionDto } from './dto/request-wallet-transaction.dto';
 import { isWalletCredit } from './wallet-transaction.utils';
@@ -52,6 +53,7 @@ export class WalletTransactionsService {
   constructor(
     private prisma: PrismaService,
     private settingsService: SettingsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   private async getDefaultExchangeRate(): Promise<number> {
@@ -175,7 +177,7 @@ export class WalletTransactionsService {
         ? dto.vndAmount / dto.amount
         : await this.getDefaultExchangeRate();
 
-    return this.prisma.$transaction((tx) =>
+    const result = await this.prisma.$transaction((tx) =>
       this.createLedgerEntry(tx, {
         customerId,
         type: dto.type,
@@ -187,6 +189,9 @@ export class WalletTransactionsService {
         status: WalletTransactionStatus.PENDING,
       }),
     );
+
+    await this.notificationsService.notifyWalletRequest(result);
+    return result;
   }
 
   /** @deprecated Admin không tạo nạp/rút — chỉ khách hàng qua frontend */
@@ -308,7 +313,7 @@ export class WalletTransactionsService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const customer = await tx.customer.findUnique({
         where: { id: existing.customerId },
       });
@@ -347,6 +352,9 @@ export class WalletTransactionsService {
         include: TX_INCLUDE,
       });
     });
+
+    await this.notificationsService.notifyWalletDecision(result, true);
+    return result;
   }
 
   async reject(id: string, processedById: string, rejectReason: string) {
@@ -358,7 +366,7 @@ export class WalletTransactionsService {
       );
     }
 
-    return this.prisma.walletTransaction.update({
+    const result = await this.prisma.walletTransaction.update({
       where: { id },
       data: {
         status: WalletTransactionStatus.REJECTED,
@@ -368,5 +376,8 @@ export class WalletTransactionsService {
       },
       include: TX_INCLUDE,
     });
+
+    await this.notificationsService.notifyWalletDecision(result, false);
+    return result;
   }
 }

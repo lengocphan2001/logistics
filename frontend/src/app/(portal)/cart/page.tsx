@@ -121,20 +121,20 @@ export default function CartPage() {
         ))}
       </div>
 
-      <div className="sticky bottom-4 rounded-xl border border-amber-200 bg-white p-4 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+      <div className="sticky bottom-3 rounded-xl border border-amber-200 bg-white p-4 shadow-lg sm:bottom-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <p className="text-sm text-gray-500">
               Đã chọn {selectedItems.length} / {cart.items.length} sản phẩm
             </p>
-            <p className="text-2xl font-bold text-red-600">{formatVnd(selectedTotalVnd)}</p>
+            <p className="text-xl font-bold text-red-600 sm:text-2xl">{formatVnd(selectedTotalVnd)}</p>
             <p className="text-sm text-gray-500">{formatCny(selectedTotalCny)}</p>
             <p className="text-xs text-gray-400">* Chưa bao gồm phí vận chuyển & dịch vụ</p>
           </div>
           <Button
             size="lg"
             disabled={selectedItems.length === 0}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
+            className="w-full bg-amber-600 text-white hover:bg-amber-700 sm:w-auto sm:min-w-[180px]"
             onClick={() =>
               router.push(`/checkout?items=${Array.from(selectedIds).join(',')}`)
             }

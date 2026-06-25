@@ -1,11 +1,10 @@
 'use client';
 
-import { Bell, Menu, Moon, Sun, ChevronDown } from 'lucide-react';
+import { Menu, Moon, Sun, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/input-group';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { useUIStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { useRouter } from 'next/navigation';
@@ -95,17 +95,7 @@ export function Header({ title }: HeaderProps) {
         </Button>
 
         {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 relative text-muted-foreground hover:text-foreground"
-          id="header-notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary border-2 border-background">
-            3
-          </Badge>
-        </Button>
+        <NotificationBell />
 
         {/* User menu */}
         <DropdownMenu>

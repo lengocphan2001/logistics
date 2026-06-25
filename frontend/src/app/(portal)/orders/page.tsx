@@ -22,6 +22,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
+import { CustomerOrderCard } from '@/components/portal/CustomerOrderCard';
 
 function OrdersContent() {
   const searchParams = useSearchParams();
@@ -55,16 +57,14 @@ function OrdersContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-accent)]">Đơn hàng</p>
-        <h1 className="mt-1 text-2xl font-bold">{trackMode ? 'Tra cứu vận đơn' : 'Danh sách đơn hàng'}</h1>
-        <p className="mt-1 text-sm text-[var(--portal-muted)]">
-          Theo dõi trạng thái, phí và tiến độ xử lý đơn hàng của bạn
-        </p>
-      </div>
+      <PortalPageHeader
+        eyebrow="Đơn hàng"
+        title={trackMode ? 'Tra cứu vận đơn' : 'Danh sách đơn hàng'}
+        description="Theo dõi trạng thái, phí và tiến độ xử lý đơn hàng của bạn"
+      />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap sm:overflow-visible sm:pb-0">
           <button
             type="button"
             onClick={() => setActiveType('ALL')}
@@ -105,7 +105,7 @@ function OrdersContent() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--portal-border)] bg-white shadow-sm">
+      <div className="rounded-2xl border border-[var(--portal-border)] bg-white shadow-sm md:overflow-hidden">
         {loading ? (
           <div className="flex h-48 items-center justify-center">
             <Loader2 className="h-7 w-7 animate-spin text-[var(--brand-accent)]" />
@@ -116,8 +116,14 @@ function OrdersContent() {
             <p className="text-sm">Không có đơn hàng phù hợp</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
+          <>
+            <div className="grid gap-3 p-4 md:hidden">
+              {orders.map((order) => (
+                <CustomerOrderCard key={order.id} order={order} />
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
+              <Table>
               <TableHeader>
                 <TableRow className="bg-[var(--brand-surface-muted)]/60 hover:bg-[var(--brand-surface-muted)]/60">
                   <TableHead>Mã vận đơn</TableHead>
@@ -156,7 +162,8 @@ function OrdersContent() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

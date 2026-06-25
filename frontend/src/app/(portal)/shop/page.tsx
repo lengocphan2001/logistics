@@ -80,10 +80,10 @@ export default function ShopPage() {
       <div className="min-w-0 flex-1 space-y-5">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Mua hộ Taobao / 1688</h1>
+          <h1 className="text-lg font-bold text-gray-900 sm:text-xl">Mua hộ Taobao / 1688</h1>
 
           {/* Provider selector */}
-          <div className="flex gap-1.5">
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:overflow-visible sm:pb-0">
             {PROVIDERS.map((p) => (
               <button
                 key={p.alias}
@@ -93,7 +93,7 @@ export default function ShopPage() {
                   setPage(1);
                 }}
                 className={cn(
-                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                  'shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
                   provider === p.alias
                     ? 'bg-amber-600 text-white shadow-sm'
                     : 'border border-amber-200 text-amber-700 hover:bg-amber-50',
@@ -106,8 +106,8 @@ export default function ShopPage() {
         </div>
 
         {/* Search bar */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               placeholder="Tìm sản phẩm trên Taobao, 1688..."
@@ -119,14 +119,14 @@ export default function ShopPage() {
           </div>
           <Button
             onClick={handleSearch}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
+            className="w-full bg-amber-600 text-white hover:bg-amber-700 sm:w-auto"
           >
             Tìm kiếm
           </Button>
         </div>
 
         {/* Sort */}
-        <div className="flex items-center gap-3 text-sm">
+        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 text-sm scrollbar-none sm:flex-wrap sm:overflow-visible sm:pb-0">
           <span className="text-gray-500">Sắp xếp:</span>
           {[
             { field: undefined, label: 'Phổ biến' },
@@ -137,7 +137,7 @@ export default function ShopPage() {
               key={s.label}
               onClick={() => { setSortField(s.field); setSortOrder('desc'); setPage(1); }}
               className={cn(
-                'px-2.5 py-1 rounded-md transition-colors',
+                'shrink-0 rounded-md px-2.5 py-1 transition-colors',
                 sortField === s.field
                   ? 'bg-amber-100 text-amber-800 font-medium'
                   : 'text-gray-600 hover:bg-gray-100',
@@ -150,10 +150,12 @@ export default function ShopPage() {
 
         {/* Results */}
         {!canSearch ? (
-          <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-            <Search className="mb-4 h-16 w-16 opacity-20" />
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400 sm:py-24">
+            <Search className="mb-4 h-12 w-12 opacity-20 sm:h-16 sm:w-16" />
             <p className="text-base font-medium text-gray-600">Tìm kiếm sản phẩm Taobao / 1688</p>
-            <p className="mt-1 text-sm">Nhập từ khóa hoặc chọn danh mục bên trái để bắt đầu</p>
+            <p className="mt-1 px-4 text-center text-sm">
+              Nhập từ khóa hoặc chọn danh mục (màn hình lớn) để bắt đầu
+            </p>
           </div>
         ) : isLoading ? (
           <div className="flex items-center justify-center py-20">

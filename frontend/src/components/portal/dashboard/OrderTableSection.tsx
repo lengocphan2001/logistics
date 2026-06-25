@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { ArrowRight, Inbox, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CustomerOrderCard } from '@/components/portal/CustomerOrderCard';
 import { ordersService, type CustomerOrder } from '@/services/orders.service';
 import type { PortalOrderTableConfig } from '@/config/portal.config';
 import { orderStatusBadgeColors, orderStatusLabels } from '@/lib/order-status';
@@ -59,8 +60,14 @@ export function OrderTableSection({ config }: OrderTableSectionProps) {
           <p className="text-sm">Chưa có đơn hàng</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <Table>
+        <>
+          <div className="grid gap-3 p-4 md:hidden">
+            {orders.map((order) => (
+              <CustomerOrderCard key={order.id} order={order} />
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="whitespace-nowrap">Mã vận đơn</TableHead>
@@ -102,7 +109,8 @@ export function OrderTableSection({ config }: OrderTableSectionProps) {
               ))}
             </TableBody>
           </Table>
-        </div>
+          </div>
+        </>
       )}
     </section>
   );

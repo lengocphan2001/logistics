@@ -85,7 +85,7 @@ export function PortalNavBar() {
   return (
     <nav className="portal-nav-bar border-b border-[var(--brand-primary-dark)]/20 shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex gap-1 overflow-x-auto py-1 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-0.5 overflow-x-auto py-1 scrollbar-none sm:gap-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {navItems.map((item) => {
             const active = isNavActive(pathname, searchParams, item, navItems);
             const Icon = portalNavIcons[item.icon];
@@ -94,8 +94,9 @@ export function PortalNavBar() {
               <Link
                 key={item.href}
                 href={item.href}
+                title={item.label}
                 className={cn(
-                  'relative inline-flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors',
+                  'relative inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors sm:gap-2 sm:px-3.5 sm:py-2.5 sm:text-sm',
                   active
                     ? 'bg-white/20 text-[var(--brand-hero-text)] shadow-sm'
                     : 'text-[var(--brand-hero-text)]/85 hover:bg-white/10 hover:text-[var(--brand-hero-text)]',
@@ -109,7 +110,7 @@ export function PortalNavBar() {
                     </span>
                   )}
                 </span>
-                {item.label}
+                <span className="hidden min-[480px]:inline">{item.label}</span>
               </Link>
             );
           })}

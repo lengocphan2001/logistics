@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NotificationBell } from '@/components/portal/NotificationBell';
 
 export function PortalTopBar() {
   const router = useRouter();
@@ -40,33 +41,36 @@ export function PortalTopBar() {
 
   return (
     <div className="border-b border-[var(--portal-border)] bg-[var(--portal-topbar)]">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
-        <Link href={portalConfig.brand.homeHref} className="flex items-center gap-2.5 shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-primary)] shadow-sm">
+      <div className="mx-auto flex max-w-7xl flex-nowrap items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-6 sm:py-2.5 lg:px-8">
+        <Link href={portalConfig.brand.homeHref} className="flex shrink-0 items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] shadow-sm sm:h-9 sm:w-9">
             <Package className="h-4 w-4 text-[var(--brand-hero-text)]" />
           </div>
-          <div className="leading-tight hidden xs:block sm:block">
+          <div className="hidden leading-tight sm:block">
             <p className="text-sm font-bold text-[var(--portal-foreground)]">{portalConfig.brand.name}</p>
             <p className="text-[11px] text-[var(--portal-muted)]">{portalConfig.brand.tagline}</p>
           </div>
         </Link>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm">
-          <div className="rounded-lg border border-[var(--portal-border)] bg-white/60 px-3 py-1.5">
-            <span className="text-[var(--portal-muted)]">Tỉ giá: </span>
+        <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1.5 text-xs sm:gap-3 sm:text-sm">
+          <div className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--portal-border)] bg-white/60 px-2 py-1 sm:px-3 sm:py-1.5">
+            <span className="hidden text-[var(--portal-muted)] sm:inline">Tỉ giá: </span>
             {rateLoading ? (
-              <Skeleton className="inline-block h-4 w-24 align-middle" />
+              <Skeleton className="inline-block h-3.5 w-14 align-middle sm:h-4 sm:w-24" />
             ) : (
               <span className="font-semibold text-[var(--portal-foreground)]">
-                1¥ = {formatVnd(vndPerCny).replace('₫', '').trim()}đ
+                <span className="sm:hidden">1¥={formatVnd(vndPerCny).replace('₫', '').trim()}đ</span>
+                <span className="hidden sm:inline">
+                  1¥ = {formatVnd(vndPerCny).replace('₫', '').trim()}đ
+                </span>
               </span>
             )}
           </div>
 
-          <div className="rounded-lg border border-[var(--portal-border)] bg-white/60 px-3 py-1.5">
-            <span className="text-[var(--portal-muted)]">Số dư: </span>
+          <div className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--portal-border)] bg-white/60 px-2 py-1 sm:px-3 sm:py-1.5">
+            <span className="hidden text-[var(--portal-muted)] sm:inline">Số dư: </span>
             {profileLoading ? (
-              <Skeleton className="inline-block h-4 w-20 align-middle" />
+              <Skeleton className="inline-block h-3.5 w-12 align-middle sm:h-4 sm:w-20" />
             ) : (
               <span className="font-bold text-[var(--brand-accent)]">{formatCny(balance)}</span>
             )}
@@ -77,20 +81,22 @@ export function PortalTopBar() {
             )}
           </div>
 
+          <NotificationBell />
+
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl border border-[var(--portal-border)] bg-white/70 px-2 py-1.5 outline-none hover:bg-white">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-[var(--brand-primary)]/15 text-xs font-bold text-[var(--brand-accent)]">
+            <DropdownMenuTrigger className="flex shrink-0 items-center gap-1 rounded-xl border border-[var(--portal-border)] bg-white/70 p-1 outline-none hover:bg-white sm:gap-2 sm:px-2 sm:py-1.5">
+              <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                <AvatarFallback className="bg-[var(--brand-primary)]/15 text-[10px] font-bold text-[var(--brand-accent)] sm:text-xs">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden text-left sm:block max-w-[140px]">
+              <div className="hidden max-w-[140px] text-left sm:block">
                 <p className="truncate text-sm font-semibold leading-tight">
                   {profile?.name || user?.name || 'Khách hàng'}
                 </p>
                 <p className="truncate text-[11px] text-[var(--portal-muted)]">Khách hàng</p>
               </div>
-              <ChevronDown className="h-4 w-4 text-[var(--portal-muted)]" />
+              <ChevronDown className="hidden h-4 w-4 text-[var(--portal-muted)] sm:block" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem onClick={() => router.push('/profile')}>

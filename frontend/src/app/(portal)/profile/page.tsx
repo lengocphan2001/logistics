@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -106,19 +107,19 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <User className="w-6 h-6 text-primary" />
-          Hồ sơ cá nhân
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Cập nhật thông tin nhận hàng và tài khoản ngân hàng
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PortalPageHeader
+        eyebrow="Tài khoản"
+        title="Hồ sơ cá nhân"
+        description="Cập nhật thông tin nhận hàng và tài khoản ngân hàng"
+        icon={<User className="h-6 w-6 text-[var(--brand-accent)]" />}
+      />
 
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 rounded-2xl border border-[var(--portal-border)] bg-white p-4 shadow-sm sm:p-6"
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Họ và tên</Label>
             <Input
@@ -137,7 +138,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 sm:max-w-md">
           <Label>Email</Label>
           <Input
             type="email"
@@ -146,7 +147,7 @@ export default function ProfilePage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Ngày sinh</Label>
             <Input
@@ -181,24 +182,25 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Địa chỉ liên hệ</Label>
-          <Input
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-          />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Địa chỉ liên hệ</Label>
+            <Input
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Địa chỉ nhận hàng</Label>
+            <Input
+              value={form.shippingAddress}
+              onChange={(e) => setForm({ ...form, shippingAddress: e.target.value })}
+              placeholder="Địa chỉ giao hàng tại Việt Nam"
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Địa chỉ nhận hàng</Label>
-          <Input
-            value={form.shippingAddress}
-            onChange={(e) => setForm({ ...form, shippingAddress: e.target.value })}
-            placeholder="Địa chỉ giao hàng tại Việt Nam"
-          />
-        </div>
-
-        <div className="rounded-lg border border-border p-4 space-y-3">
+        <div className="rounded-xl border border-[var(--portal-border)] bg-[var(--brand-surface-muted)]/30 p-4 space-y-3">
           <p className="text-sm font-semibold">Thông tin ngân hàng (rút tiền)</p>
           <div className="space-y-1.5">
             <Label>Tên ngân hàng</Label>
@@ -209,7 +211,7 @@ export default function ProfilePage() {
               }
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Số tài khoản</Label>
               <Input
@@ -237,7 +239,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <Button type="submit" size="lg" disabled={submitting}>
+        <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu thay đổi'}
         </Button>
       </form>

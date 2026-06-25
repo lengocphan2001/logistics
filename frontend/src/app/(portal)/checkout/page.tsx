@@ -153,12 +153,12 @@ function CheckoutContent() {
         <p className="mt-2 max-w-md text-gray-500">
           Đã tạo {success.length} đơn hàng. Nhân viên sẽ xử lý và thông báo khi hàng về kho VN.
         </p>
-        <div className="mt-6 flex gap-3">
-          <Button variant="outline" onClick={() => router.push('/orders')}>
+        <div className="mt-6 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => router.push('/orders')}>
             Xem đơn hàng
           </Button>
           <Button
-            className="bg-amber-600 text-white hover:bg-amber-700"
+            className="w-full bg-amber-600 text-white hover:bg-amber-700 sm:w-auto"
             onClick={() => router.push('/shop')}
           >
             Tiếp tục mua hàng
@@ -207,7 +207,7 @@ function CheckoutContent() {
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
+      <div className="grid gap-8 pb-8 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
           {shopGroups.map((group) => (
             <CheckoutShopBlock key={group.shopKey} group={group} vndPerCny={vndPerCny} />
@@ -215,7 +215,7 @@ function CheckoutContent() {
 
           <section className="rounded-xl border border-gray-200/80 bg-white p-5 shadow-sm">
             <h2 className="text-base font-semibold text-sky-700">Thông tin nhận hàng</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1.5">
                 <Label className="text-gray-600">
                   Kho Trung Quốc <span className="text-red-500">*</span>

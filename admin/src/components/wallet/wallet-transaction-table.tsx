@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Loader2, CheckCircle, XCircle, AtSign } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AtSign, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   walletTransactionsService,
   type WalletTransaction,
@@ -151,30 +152,39 @@ export function WalletTransactionTable({
                 </td>
                 {showActions && (
                   <td className="px-4 py-3 text-right">
-                    {tx.status === 'PENDING' && onApprove && onReject ? (
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          disabled={processingId === tx.id}
-                          onClick={() => onApprove(tx.id)}
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs text-destructive"
-                          disabled={processingId === tx.id}
-                          onClick={() => onReject(tx.id)}
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      '—'
-                    )}
+                    <div className="flex justify-end gap-1">
+                      <Link
+                        href={`/wallet-transactions/${tx.id}`}
+                        title="Xem chi tiết"
+                        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'h-7 px-2')}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </Link>
+                      {tx.status === 'PENDING' && onApprove && onReject ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={processingId === tx.id}
+                            onClick={() => onApprove(tx.id)}
+                            title="Duyệt"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-destructive"
+                            disabled={processingId === tx.id}
+                            onClick={() => onReject(tx.id)}
+                            title="Từ chối"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
                   </td>
                 )}
               </tr>

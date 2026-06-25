@@ -40,7 +40,7 @@ export default function OrderDetailPage() {
 
   if (error || !order) {
     return (
-      <div className="mx-auto max-w-3xl py-6 text-center">
+      <div className="py-6 text-center">
         <p className="text-[var(--portal-muted)]">{error || 'Không tìm thấy đơn hàng'}</p>
         <Link href="/orders" className={cn(buttonVariants({ variant: 'outline' }), 'mt-4 inline-flex')}>
           Quay lại danh sách
@@ -50,7 +50,7 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <Link
         href="/orders"
         className="inline-flex items-center gap-1.5 text-sm text-[var(--brand-accent)] hover:underline"
@@ -59,13 +59,13 @@ export default function OrderDetailPage() {
         Danh sách đơn hàng
       </Link>
 
-      <div className="rounded-2xl border border-[var(--portal-border)] bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+      <div className="rounded-2xl border border-[var(--portal-border)] bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--portal-muted)]">
               {orderTypeLabels[order.type as keyof typeof orderTypeLabels]}
             </p>
-            <h1 className="mt-1 font-mono text-xl font-bold">{order.billOfLadingCode}</h1>
+            <h1 className="mt-1 break-all font-mono text-lg font-bold sm:text-xl">{order.billOfLadingCode}</h1>
             <p className="mt-1 text-sm text-[var(--portal-muted)]">
               Tạo lúc {format(new Date(order.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}
             </p>
@@ -75,7 +75,7 @@ export default function OrderDetailPage() {
           </Badge>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-3 sm:gap-4">
           <div className="rounded-xl bg-[var(--brand-surface-muted)]/60 p-4">
             <p className="text-xs text-[var(--portal-muted)]">Tổng phí</p>
             <p className="mt-1 text-lg font-bold">{formatCny(order.totalFee)}</p>

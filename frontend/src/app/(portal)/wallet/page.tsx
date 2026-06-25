@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ArrowDownToLine, ArrowUpFromLine, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,22 +71,25 @@ function WalletRequestForm() {
   };
 
   return (
-    <div className="max-w-lg space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          {type === 'DEPOSIT' ? (
-            <ArrowDownToLine className="w-6 h-6 text-emerald-600" />
+    <div className="space-y-6">
+      <PortalPageHeader
+        eyebrow="Ví"
+        title={type === 'DEPOSIT' ? 'Yêu cầu nạp tiền' : 'Yêu cầu rút tiền'}
+        description={`Số dư hiện tại: ${formatCny(balance)} (≈ ${formatVnd(cnyToVnd(balance, vndPerCny))})`}
+        icon={
+          type === 'DEPOSIT' ? (
+            <ArrowDownToLine className="h-6 w-6 text-emerald-600" />
           ) : (
-            <ArrowUpFromLine className="w-6 h-6 text-orange-600" />
-          )}
-          {type === 'DEPOSIT' ? 'Yêu cầu nạp tiền' : 'Yêu cầu rút tiền'}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Số dư hiện tại: {formatCny(balance)} (≈ {formatVnd(cnyToVnd(balance, vndPerCny))})
-        </p>
-      </div>
+            <ArrowUpFromLine className="h-6 w-6 text-orange-600" />
+          )
+        }
+      />
 
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 space-y-4">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 rounded-2xl border border-[var(--portal-border)] bg-white p-4 shadow-sm sm:p-6"
+        >
         <div className="space-y-1.5">
           <Label>Loại giao dịch</Label>
           <Select value={type} onValueChange={(v) => setType(v as 'DEPOSIT' | 'WITHDRAWAL')}>
@@ -140,10 +144,20 @@ function WalletRequestForm() {
           Yêu cầu sẽ ở trạng thái chờ duyệt. Admin xác nhận trước khi cập nhật số dư.
         </p>
 
-        <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+        <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gửi yêu cầu'}
         </Button>
       </form>
+
+        <aside className="h-fit rounded-2xl border border-[var(--portal-border)] bg-[var(--brand-surface-muted)]/40 p-4 text-sm sm:p-5 lg:sticky lg:top-6">
+          <p className="font-semibold text-[var(--portal-foreground)]">Lưu ý</p>
+          <ul className="mt-3 space-y-2 text-[var(--portal-muted)]">
+            <li>Yêu cầu sẽ ở trạng thái chờ duyệt trước khi cập nhật số dư.</li>
+            <li>Nạp tiền: nhập mã tham chiếu chuyển khoản để admin đối soát nhanh hơn.</li>
+            <li>Rút tiền: đảm bảo thông tin ngân hàng trong hồ sơ đã chính xác.</li>
+          </ul>
+        </aside>
+      </div>
     </div>
   );
 }

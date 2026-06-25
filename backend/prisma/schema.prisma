@@ -65,6 +65,18 @@ enum WalletTransactionStatus {
   REJECTED
 }
 
+enum NotificationRecipientType {
+  USER
+  CUSTOMER
+}
+
+enum NotificationType {
+  WALLET_DEPOSIT_REQUEST
+  WALLET_WITHDRAWAL_REQUEST
+  WALLET_REQUEST_APPROVED
+  WALLET_REQUEST_REJECTED
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -325,4 +337,21 @@ model WalletTransaction {
   @@index([status])
   @@index([createdAt])
   @@map("wallet_transactions")
+}
+
+model Notification {
+  id                  String                    @id @default(uuid())
+  recipientType       NotificationRecipientType
+  recipientId         String
+  type                NotificationType
+  title               String
+  message             String
+  link                String?
+  walletTransactionId String?
+  readAt              DateTime?
+  createdAt           DateTime                  @default(now())
+
+  @@index([recipientType, recipientId, readAt])
+  @@index([recipientType, recipientId, createdAt])
+  @@map("notifications")
 }

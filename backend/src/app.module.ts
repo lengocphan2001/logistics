@@ -15,6 +15,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { WalletTransactionsModule } from './modules/wallet-transactions/wallet-transactions.module';
 import { ProductsModule } from './modules/products/products.module';
 import { CartModule } from './modules/cart/cart.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { CartModule } from './modules/cart/cart.module';
     WalletTransactionsModule,
     ProductsModule,
     CartModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

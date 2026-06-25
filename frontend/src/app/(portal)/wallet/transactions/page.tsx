@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { History, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WalletTransactionTable } from '@/components/wallet/wallet-transaction-table';
 import {
@@ -42,17 +43,14 @@ export default function WalletTransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <History className="w-6 h-6 text-primary" />
-          Lịch sử giao dịch
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Toàn bộ giao dịch ví: nạp, rút, đặt cọc và thanh toán đơn hàng.
-        </p>
-      </div>
+      <PortalPageHeader
+        eyebrow="Ví"
+        title="Lịch sử giao dịch"
+        description="Toàn bộ giao dịch ví: nạp, rút, đặt cọc và thanh toán đơn hàng."
+        icon={<History className="h-6 w-6 text-[var(--brand-accent)]" />}
+      />
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="sm:w-44">
             <SelectValue placeholder="Loại" />
@@ -81,7 +79,7 @@ export default function WalletTransactionsPage() {
         </Select>
       </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-2xl border border-[var(--portal-border)] bg-white shadow-sm md:overflow-hidden">
         <WalletTransactionTable transactions={transactions} loading={loading} />
       </div>
     </div>
