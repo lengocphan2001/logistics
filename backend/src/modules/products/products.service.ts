@@ -11,11 +11,17 @@ import type {
 } from './interfaces/product-provider.interface';
 
 const HOT_ROOT_CATEGORY_LIMIT = 30;
+/** Categories change rarely — default 7 days (seconds). */
+const DEFAULT_CATEGORY_CACHE_TTL_SEC = 7 * 24 * 60 * 60;
+/** Stale fallback when OTAPI is down — default 30 days (seconds). */
+const DEFAULT_CATEGORY_STALE_TTL_SEC = 30 * 24 * 60 * 60;
 
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
   private readonly cacheTtl: number;
+  private readonly categoryCacheTtl: number;
+  private readonly categoryStaleTtl: number;
 
   constructor(
     private readonly provider: OtapiProvider,
@@ -23,6 +29,12 @@ export class ProductsService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {
     this.cacheTtl = (Number(config.get('PRODUCT_CACHE_TTL')) || 300) * 1000;
+    this.categoryCacheTtl =
+      (Number(config.get('PRODUCT_CATEGORY_CACHE_TTL')) ||
+        DEFAULT_CATEGORY_CACHE_TTL_SEC) * 1000;
+    this.categoryStaleTtl =
+      (Number(config.get('PRODUCT_CATEGORY_STALE_TTL')) ||
+        DEFAULT_CATEGORY_STALE_TTL_SEC) * 1000;
   }
 
   private async cached<T>(
@@ -41,11 +53,12 @@ export class ProductsService {
     key: string,
     fn: () => Promise<T>,
     ttl: number,
+    staleTtl = this.categoryStaleTtl,
   ): Promise<T> {
     const staleKey = `stale:${key}`;
     try {
       const value = await this.cached(key, fn, ttl);
-      await this.cache.set(staleKey, value, 7 * 24 * 60 * 60 * 1000);
+      await this.cache.set(staleKey, value, staleTtl);
       return value;
     } catch (err) {
       const stale = await this.cache.get<T>(staleKey);
@@ -70,7 +83,7 @@ export class ProductsService {
     return this.cachedWithStaleFallback(
       cacheKey,
       () => this.provider.getCategories(id, provider, effectiveLimit),
-      60 * 60 * 1000,
+      this.categoryCacheTtl,
     );
   }
 
@@ -82,8 +95,19 @@ export class ProductsService {
     const cacheKey = `cat-flyout:${provider}:${parentId}`;
     return this.cachedWithStaleFallback(
       cacheKey,
-      () => this.provider.getCategoryFlyout(parentId, provider),
-      60 * 60 * 1000,
+      async () => {
+        const level2 = await this.getCategories(parentId, provider);
+        return Promise.all(
+          level2.map(async (cat) => {
+            if (cat.hasChildren) {
+              const items = await this.getCategories(cat.id, provider);
+              return { id: cat.id, name: cat.name, items };
+            }
+            return { id: cat.id, name: cat.name, items: [] };
+          }),
+        );
+      },
+      this.categoryCacheTtl,
     );
   }
 

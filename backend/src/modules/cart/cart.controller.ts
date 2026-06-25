@@ -14,7 +14,10 @@ import { UpsertCartItemDto } from './dto/upsert-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CustomerAccountGuard } from '../../common/guards/customer-account.guard';
-import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type AuthUser,
+} from '../../common/decorators/current-user.decorator';
 
 @Controller('customer/cart')
 @UseGuards(JwtAuthGuard, CustomerAccountGuard)
@@ -48,7 +51,10 @@ export class CartController {
 
   @Delete('shops/:shopKey')
   removeShop(@CurrentUser() user: AuthUser, @Param('shopKey') shopKey: string) {
-    return this.cartService.removeShopItems(user.id, decodeURIComponent(shopKey));
+    return this.cartService.removeShopItems(
+      user.id,
+      decodeURIComponent(shopKey),
+    );
   }
 
   @Delete('items/:id')

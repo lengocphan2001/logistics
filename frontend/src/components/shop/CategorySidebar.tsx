@@ -24,6 +24,9 @@ const PALETTE = [
 
 const color = (idx: number) => PALETTE[idx % PALETTE.length];
 
+/** Match backend PRODUCT_CATEGORY_CACHE_TTL — categories rarely change. */
+const CATEGORY_STALE_MS = 7 * 24 * 60 * 60 * 1000;
+
 interface FlyoutPos {
   x: number;
   y: number;
@@ -78,7 +81,8 @@ export function CategorySidebar({ selectedId, provider = 'p1', onSelect }: Categ
   const { data: roots, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['categories', 'root', provider],
     queryFn: () => productsService.getCategories('0', provider, 30),
-    staleTime: 60 * 60 * 1000,
+    staleTime: CATEGORY_STALE_MS,
+    gcTime: CATEGORY_STALE_MS,
     retry: 2,
     retryDelay: (attempt) => Math.min(1500 * 2 ** attempt, 6000),
   });
@@ -87,7 +91,8 @@ export function CategorySidebar({ selectedId, provider = 'p1', onSelect }: Categ
     queryKey: ['categories', 'flyout', flyout?.parentId, provider],
     queryFn: () => productsService.getCategoryFlyout(flyout!.parentId, provider),
     enabled: !!flyout?.parentId,
-    staleTime: 60 * 60 * 1000,
+    staleTime: CATEGORY_STALE_MS,
+    gcTime: CATEGORY_STALE_MS,
     retry: 1,
   });
 
