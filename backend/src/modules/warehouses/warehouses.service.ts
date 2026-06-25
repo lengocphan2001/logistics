@@ -22,6 +22,7 @@ export class WarehousesService {
         name,
         code,
         address,
+        country: createWarehouseDto.country ?? 'VN',
       },
     });
   }
@@ -44,6 +45,21 @@ export class WarehousesService {
       orderBy: {
         createdAt: 'desc',
       },
+    });
+  }
+
+  /** Danh sách kho công khai cho khách hàng (checkout) */
+  async findForCustomer(country?: 'CN' | 'VN') {
+    return this.prisma.warehouse.findMany({
+      where: country ? { country } : undefined,
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        address: true,
+        country: true,
+      },
+      orderBy: [{ country: 'asc' }, { name: 'asc' }],
     });
   }
 

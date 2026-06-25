@@ -289,40 +289,6 @@ server {
     location / {
         proxy_pass http://localhost:4000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        # Preflight OPTIONS phải tới NestJS (backend xử lý CORS)
-        if ($request_method = OPTIONS) {
-            add_header Content-Length 0;
-            add_header Content-Type text/plain;
-            return 204;
-        }
-    }
-}
-```
-
-> **Lưu ý CORS**: Backend (`main.ts`) cấu hình whitelist origin. Khối `if ($request_method = OPTIONS)` ở trên **chỉ dùng khi** preflight không tới được NestJS. Khuyến nghị **bỏ** khối `if OPTIONS` và để NestJS trả CORS headers — sau khi sửa `main.ts`, rebuild backend và `pm2 restart logistics-backend`.
-
-Nếu vẫn lỗi CORS, kiểm tra:
-1. `backend/.env` có `CORS_ORIGINS` đúng domain frontend (https, không thiếu www)
-2. `pm2 logs logistics-backend` — dòng `CORS origins: ...` khi khởi động
-3. Test: `curl -I -X OPTIONS https://api.tamanlogistics.vn/auth/customer/register -H "Origin: https://tamanlogistics.vn" -H "Access-Control-Request-Method: POST"` — phải thấy `Access-Control-Allow-Origin: https://tamanlogistics.vn`
-
-```nginx
-# Phiên bản đơn giản (khuyến nghị) — không chặn OPTIONS tại Nginx:
-# 3. BACKEND API (api.tamanlogistics.vn) -> Port 4000
-server {
-    listen 80;
-    server_name api.tamanlogistics.vn;
-
-    location / {
-        proxy_pass http://localhost:4000;
-        proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -330,6 +296,21 @@ server {
     }
 }
 ```
+
+> **CORS**: Backend whitelist origin trong `main.ts`. **Không** trả 204 cho OPTIONS tại Nginx (sẽ thiếu header CORS). Để mọi request (kể cả preflight) proxy tới NestJS.
+
+Nếu vẫn lỗi CORS sau khi deploy code mới:
+1. Thêm vào `backend/.env`: `CORS_ORIGINS=https://tamanlogistics.vn,https://www.tamanlogistics.vn,https://admin.tamanlogistics.vn`
+2. `cd backend && npm run build && pm2 restart logistics-backend`
+3. Kiểm tra log: `pm2 logs logistics-backend` — dòng `CORS origins: ...`
+4. Test preflight:
+```bash
+curl -I -X OPTIONS "https://api.tamanlogistics.vn/auth/customer/register" \
+  -H "Origin: https://tamanlogistics.vn" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: content-type"
+```
+Phải thấy `access-control-allow-origin: https://tamanlogistics.vn`
 
 ### 5.2 Kích hoạt cấu hình và Restart Nginx
 Tạo liên kết symlink để kích hoạt:

@@ -39,8 +39,29 @@ export interface Order {
   customer?: { id: string; fullName: string; phone: string; username?: string } | null;
   warehouseId?: string | null;
   warehouse?: { id: string; name: string; code: string } | null;
+  // Taobao/1688 aggregator fields
+  platform?: string | null;
+  shopId?: string | null;
+  shopName?: string | null;
+  shopUrl?: string | null;
+  itemsTotalCny?: number | string | null;
+  items?: AdminOrderItem[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AdminOrderItem {
+  id: string;
+  itemId: string;
+  providerAlias: string;
+  skuId?: string | null;
+  title: string;
+  image?: string | null;
+  priceCny: number | string;
+  quantity: number;
+  totalCny: number | string;
+  url?: string | null;
+  properties?: { name: string; value: string }[] | null;
 }
 
 export interface CreateOrderPayload {

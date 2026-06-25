@@ -12,6 +12,8 @@ import {
   MapPin,
   Wallet,
   History,
+  ExternalLink,
+  ShoppingCart,
 } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -185,6 +187,84 @@ export default function OrderDetailPage() {
               <Package className="w-4 h-4" /> Mô tả hàng hoá
             </p>
             <p>{order.description}</p>
+          </div>
+        )}
+
+        {/* Aggregator order items */}
+        {order.items && order.items.length > 0 && (
+          <div className="pt-4 border-t">
+            <p className="font-semibold flex items-center gap-2 mb-3">
+              <ShoppingCart className="w-4 h-4 text-primary" /> Sản phẩm đặt mua
+              {order.shopName && (
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  — {order.shopName}
+                  {order.shopUrl && (
+                    <a href={order.shopUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline inline-flex items-center gap-0.5">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </span>
+              )}
+            </p>
+            <div className="rounded-xl border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">Sản phẩm</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-20">Đơn giá</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-16">SL</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-24">Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {order.items.map((item) => (
+                    <tr key={item.id} className="hover:bg-muted/20">
+                      <td className="px-3 py-2">
+                        <div className="flex items-start gap-2">
+                          {item.image && (
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="h-12 w-12 shrink-0 rounded object-cover border border-border"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <p className="line-clamp-2 text-sm">{item.title}</p>
+                            {item.properties && item.properties.length > 0 && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {item.properties.map((p) => `${p.name}: ${p.value}`).join(', ')}
+                              </p>
+                            )}
+                            {item.url && (
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline mt-0.5"
+                              >
+                                Xem nguồn <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium">¥{Number(item.priceCny).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right">{item.quantity}</td>
+                      <td className="px-3 py-2 text-right font-bold text-primary">¥{Number(item.totalCny).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border-t-2 border-border bg-muted/30">
+                  <tr>
+                    <td colSpan={3} className="px-3 py-2 text-right font-semibold">Tổng hàng:</td>
+                    <td className="px-3 py-2 text-right font-bold text-primary">
+                      ¥{order.items.reduce((s, i) => s + Number(i.totalCny), 0).toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         )}
       </div>

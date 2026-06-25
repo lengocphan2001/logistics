@@ -36,9 +36,28 @@ export interface CustomerOrderEvent {
   createdAt: string;
 }
 
+export interface OrderItemLine {
+  id: string;
+  itemId: string;
+  providerAlias: string;
+  skuId?: string | null;
+  title: string;
+  image?: string | null;
+  priceCny: number | string;
+  quantity: number;
+  totalCny: number | string;
+  url?: string | null;
+  properties?: { name: string; value: string }[] | null;
+}
+
 export interface CustomerOrderDetail extends CustomerOrder {
   events?: CustomerOrderEvent[];
   warehouse?: { id: string; name: string; code: string } | null;
+  items?: OrderItemLine[];
+  platform?: string | null;
+  shopName?: string | null;
+  shopUrl?: string | null;
+  itemsTotalCny?: number | string | null;
 }
 
 const BASE = '/customer/orders';

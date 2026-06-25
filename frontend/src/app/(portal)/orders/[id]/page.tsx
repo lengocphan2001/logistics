@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ExternalLink } from 'lucide-react';
 import { ordersService, type CustomerOrderDetail } from '@/services/orders.service';
+import { productsService } from '@/services/products.service';
 import { orderTypeLabels } from '@/lib/order-type';
 import { orderStatusBadgeColors, orderStatusLabels } from '@/lib/order-status';
 import { formatCny } from '@/lib/currency';
@@ -88,6 +89,55 @@ export default function OrderDetailPage() {
             <p className="mt-1 text-lg font-bold">{formatCny(order.declaredValue)}</p>
           </div>
         </div>
+
+        {/* Order Items (Mua hộ) */}
+        {order.items && order.items.length > 0 && (
+          <div className="mt-8">
+            <h2 className="mb-4 font-semibold">Sản phẩm đặt mua</h2>
+            <div className="space-y-3">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex items-start gap-3 rounded-xl border border-amber-100 p-3">
+                  {item.image && (
+                    <img
+                      src={productsService.imageProxyUrl(item.image)}
+                      alt={item.title}
+                      className="h-16 w-16 shrink-0 rounded-lg object-cover border border-gray-100"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="line-clamp-2 text-sm font-medium text-gray-800">{item.title}</p>
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-amber-600 hover:text-amber-800"
+                          title="Xem nguồn"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                    {item.properties && item.properties.length > 0 && (
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {item.properties.map((p) => `${p.name}: ${p.value}`).join(', ')}
+                      </p>
+                    )}
+                    <div className="mt-1.5 flex items-center justify-between text-sm">
+                      <span className="text-gray-500">×{item.quantity} · ¥{Number(item.priceCny).toFixed(2)}/cái</span>
+                      <span className="font-bold text-amber-700">¥{Number(item.totalCny).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex justify-end text-sm font-bold text-amber-700">
+              Tổng hàng: ¥{order.items.reduce((s, i) => s + Number(i.totalCny), 0).toFixed(2)}
+            </div>
+          </div>
+        )}
 
         {order.events && order.events.length > 0 && (
           <div className="mt-8">

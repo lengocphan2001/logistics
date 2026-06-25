@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   Query,
   DefaultValuePipe,
@@ -12,6 +14,7 @@ import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CustomerAccountGuard } from '../../common/guards/customer-account.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CheckoutDto } from './dto/checkout.dto';
 
 @Controller('customer/orders')
 @UseGuards(JwtAuthGuard, CustomerAccountGuard)
@@ -39,6 +42,11 @@ export class CustomerOrdersController {
       type,
       search,
     });
+  }
+
+  @Post('checkout')
+  checkout(@CurrentUser() user: { id: string }, @Body() dto: CheckoutDto) {
+    return this.ordersService.checkoutCart(user.id, dto);
   }
 
   @Get(':id')

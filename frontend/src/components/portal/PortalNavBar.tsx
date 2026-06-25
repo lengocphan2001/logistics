@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { portalConfig, type PortalNavItem } from '@/config/portal.config';
 import { portalNavIcons } from '@/components/portal/icon-map';
+import { useCartStore } from '@/stores/cart.store';
+import { useAuthStore } from '@/stores/auth.store';
 
 function parseNavHref(href: string) {
   const [path, query = ''] = href.split('?');
@@ -70,6 +73,15 @@ export function PortalNavBar() {
   const searchParams = useSearchParams();
   const navItems = portalConfig.nav;
 
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { fetchCart, itemCount } = useCartStore();
+  const cartCount = useCartStore((s) => s.itemCount());
+
+  // Load cart count once authenticated
+  useEffect(() => {
+    if (isAuthenticated) fetchCart();
+  }, [isAuthenticated, fetchCart]);
+
   return (
     <nav className="portal-nav-bar border-b border-[var(--brand-primary-dark)]/20 shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -77,18 +89,26 @@ export function PortalNavBar() {
           {navItems.map((item) => {
             const active = isNavActive(pathname, searchParams, item, navItems);
             const Icon = portalNavIcons[item.icon];
+            const isCart = item.href === '/cart';
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors',
+                  'relative inline-flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors',
                   active
                     ? 'bg-white/20 text-[var(--brand-hero-text)] shadow-sm'
                     : 'text-[var(--brand-hero-text)]/85 hover:bg-white/10 hover:text-[var(--brand-hero-text)]',
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <span className="relative">
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {isCart && cartCount > 0 && (
+                    <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
+                </span>
                 {item.label}
               </Link>
             );

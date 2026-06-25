@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { WarehouseCountry } from '@prisma/client';
 
 export class CreateWarehouseDto {
   @IsString({ message: 'Tên kho phải là chuỗi' })
@@ -12,4 +13,8 @@ export class CreateWarehouseDto {
   @IsString({ message: 'Địa chỉ kho phải là chuỗi' })
   @IsNotEmpty({ message: 'Địa chỉ kho không được để trống' })
   address: string;
+
+  @IsOptional()
+  @IsEnum(WarehouseCountry, { message: 'Quốc gia kho phải là CN hoặc VN' })
+  country?: WarehouseCountry;
 }

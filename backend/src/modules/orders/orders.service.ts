@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { WalletTransactionsService } from '../wallet-transactions/wallet-transactions.service';
+import { ProductsService } from '../products/products.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import {
@@ -26,6 +27,7 @@ const ORDER_INCLUDE = {
   driver: { select: { id: true, name: true, email: true } },
   warehouse: { select: { id: true, name: true, code: true } },
   events: { orderBy: { createdAt: 'desc' as const }, take: 10 },
+  items: { orderBy: { createdAt: 'asc' as const } },
 };
 
 @Injectable()
@@ -33,6 +35,7 @@ export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private walletTransactionsService: WalletTransactionsService,
+    private productsService: ProductsService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto, createdById: string) {
@@ -391,6 +394,7 @@ export class OrdersService {
       include: {
         events: { orderBy: { createdAt: 'desc' }, take: 20 },
         warehouse: { select: { id: true, name: true, code: true } },
+        items: { orderBy: { createdAt: 'asc' } },
       },
     });
 
@@ -399,5 +403,194 @@ export class OrdersService {
     }
 
     return order;
+  }
+
+  /**
+   * Checkout giỏ hàng mua hộ:
+   * 1. Gom cart items (theo shop nếu nhiều shop → tạo nhiều đơn)
+   * 2. Tính tổng ¥
+   * 3. Kiểm tra số dư ví
+   * 4. Dùng prisma.$transaction: trừ ví (ORDER_DEPOSIT), tạo Order + OrderItem, xóa CartItem đã checkout
+   */
+  async checkoutCart(
+    customerId: string,
+    dto: import('./dto/checkout.dto').CheckoutDto,
+  ) {
+    // Load cart items
+    const cart = await this.prisma.cart.findUnique({
+      where: { customerId },
+      include: { items: true },
+    });
+
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException('Giỏ hàng trống');
+    }
+
+    const selectedItems = dto.cartItemIds?.length
+      ? cart.items.filter((i) => dto.cartItemIds!.includes(i.id))
+      : cart.items;
+
+    if (selectedItems.length === 0) {
+      throw new BadRequestException('Không có sản phẩm nào được chọn');
+    }
+
+    const enrichedItems = await Promise.all(
+      selectedItems.map(async (item) => {
+        const props = item.properties as unknown;
+        if (Array.isArray(props) && props.length > 0) return item;
+
+        const resolved = await this.productsService.resolveSkuProperties(
+          item.providerAlias,
+          item.itemId,
+          item.skuId,
+        );
+        if (resolved.length === 0) return item;
+
+        await this.prisma.cartItem.update({
+          where: { id: item.id },
+          data: { properties: resolved as any },
+        });
+        return { ...item, properties: resolved as any };
+      }),
+    );
+
+    const logParts: string[] = [];
+    if (dto.cnWarehouseId) {
+      const cnWh = await this.prisma.warehouse.findFirst({
+        where: { id: dto.cnWarehouseId, country: 'CN' },
+      });
+      if (cnWh) logParts.push(`Kho TQ: ${cnWh.name}`);
+    }
+    if (dto.vnWarehouseId) {
+      const vnWh = await this.prisma.warehouse.findFirst({
+        where: { id: dto.vnWarehouseId, country: 'VN' },
+      });
+      if (vnWh) logParts.push(`Kho VN: ${vnWh.name}`);
+    }
+    if (dto.shippingMethod) logParts.push(`Vận chuyển: ${dto.shippingMethod}`);
+    const orderNote = [dto.note, ...logParts].filter(Boolean).join(' | ');
+
+    // Load customer balance
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { balance: true, fullName: true, phone: true, address: true },
+    });
+    if (!customer) throw new NotFoundException('Không tìm thấy khách hàng');
+
+    // Group by shop
+    const shopMap = new Map<string, typeof enrichedItems>();
+    for (const item of enrichedItems) {
+      const key = `${item.providerAlias}:${item.shopId ?? '__single__'}`;
+      if (!shopMap.has(key)) shopMap.set(key, []);
+      shopMap.get(key)!.push(item);
+    }
+
+    const shopGroups = Array.from(shopMap.entries()).map(([, items]) => ({
+      items,
+      shopId: items[0].shopId ?? undefined,
+      shopName: items[0].shopName ?? undefined,
+      platform: items[0].platform ?? undefined,
+      providerAlias: items[0].providerAlias,
+      totalCny: items.reduce((s, i) => s + Number(i.priceCny) * i.quantity, 0),
+    }));
+
+    const grandTotalCny = shopGroups.reduce((s, g) => s + g.totalCny, 0);
+
+    if (Number(customer.balance) < grandTotalCny) {
+      throw new BadRequestException(
+        `Số dư ví không đủ. Cần ¥${grandTotalCny.toFixed(2)}, hiện có ¥${Number(customer.balance).toFixed(2)}`,
+      );
+    }
+
+    // Exchange rate for VND reference
+    const settings = await this.prisma.appSetting.findUnique({ where: { id: 'default' } });
+    const rate = Number(settings?.vndPerCny ?? 3500);
+
+    const createdOrders: string[] = [];
+
+    await this.prisma.$transaction(async (tx) => {
+      let remainingBalance = Number(customer.balance);
+
+      for (const group of shopGroups) {
+        const depositCny = group.totalCny;
+
+        // Create Order
+        const order = await tx.order.create({
+          data: {
+            type: 'PROXY_PURCHASE',
+            status: 'DEPOSIT_PAID',
+            paymentStatus: 'UNPAID',
+            paymentMethod: 'BALANCE',
+            platform: group.platform,
+            shopId: group.shopId,
+            shopName: group.shopName,
+            itemsTotalCny: depositCny,
+            depositAmount: depositCny,
+            senderName: group.shopName ?? 'Taman Logistics',
+            senderPhone: '0000000000',
+            senderAddress: 'Trung Quốc',
+            receiverName: dto.receiverName,
+            receiverPhone: dto.receiverPhone,
+            receiverAddress: dto.receiverAddress,
+            receiverProvince: dto.receiverProvince,
+            receiverDistrict: dto.receiverDistrict,
+            note: orderNote || undefined,
+            warehouseId: dto.vnWarehouseId,
+            customerId,
+            items: {
+              create: group.items.map((i) => ({
+                itemId: i.itemId,
+                providerAlias: i.providerAlias,
+                skuId: i.skuId,
+                title: i.title,
+                image: i.image,
+                priceCny: i.priceCny,
+                quantity: i.quantity,
+                totalCny: Number(i.priceCny) * i.quantity,
+                url: i.url,
+                properties: (i.properties ?? []) as any,
+              })),
+            },
+            events: {
+              create: {
+                status: 'DEPOSIT_PAID',
+                note: 'Đơn hàng được tạo tự động từ giỏ hàng',
+              },
+            },
+          },
+        });
+
+        createdOrders.push(order.id);
+
+        // Deduct wallet
+        remainingBalance -= depositCny;
+        await tx.customer.update({
+          where: { id: customerId },
+          data: { balance: remainingBalance },
+        });
+
+        // Wallet transaction
+        await tx.walletTransaction.create({
+          data: {
+            type: 'ORDER_DEPOSIT',
+            status: 'APPROVED',
+            amount: depositCny,
+            vndAmount: depositCny * rate,
+            exchangeRate: rate,
+            note: `Đặt cọc đơn mua hộ ${group.shopName ?? group.shopId ?? ''}`,
+            balanceBefore: remainingBalance + depositCny,
+            balanceAfter: remainingBalance,
+            customerId,
+            orderId: order.id,
+          },
+        });
+      }
+
+      // Delete checked-out cart items
+      const checkedOutIds = enrichedItems.map((i) => i.id);
+      await tx.cartItem.deleteMany({ where: { id: { in: checkedOutIds } } });
+    });
+
+    return { success: true, orderIds: createdOrders };
   }
 }

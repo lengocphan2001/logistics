@@ -11,7 +11,9 @@ import {
   Package,
   Search,
   ShoppingBag,
+  ShoppingCart,
   Sparkles,
+  Store,
   Truck,
   User,
   Wallet,
@@ -25,6 +27,8 @@ export const portalNavIcons: Record<PortalNavIcon, LucideIcon> = {
   History,
   User,
   Search,
+  Store,
+  ShoppingCart,
 };
 
 export const portalStatIcons = {

@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 const DEFAULT_CORS_ORIGINS = [
   'http://localhost:3000',
@@ -25,7 +26,9 @@ function getCorsOrigins(): string[] {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['log', 'warn', 'error', 'debug', 'verbose'],
+  });
   const allowedOrigins = getCorsOrigins();
 
   app.enableCors({
@@ -50,6 +53,10 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  // Global rate limiter — use module-level @Throttle() to tighten specific routes
+  // (ThrottlerGuard needs Reflector, so wire via module providers for module-specific overrides)
+  // Applied via ThrottlerModule in app.module.ts with per-controller @Throttle decorators
 
   const port = process.env.PORT || 4000;
   await app.listen(port);

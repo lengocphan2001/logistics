@@ -7,7 +7,9 @@ export type PortalNavIcon =
   | 'Wallet'
   | 'History'
   | 'User'
-  | 'Search';
+  | 'Search'
+  | 'Store'
+  | 'ShoppingCart';
 
 export interface PortalNavItem {
   label: string;
@@ -63,6 +65,8 @@ export const portalConfig = {
 
   nav: [
     { label: 'Tổng quan', href: '/dashboard', icon: 'LayoutDashboard', exact: true },
+    { label: 'Mua hộ', href: '/shop', icon: 'Store' },
+    { label: 'Giỏ hàng', href: '/cart', icon: 'ShoppingCart', exact: true },
     { label: 'Đơn hàng', href: '/orders', icon: 'Package' },
     { label: 'Nạp / Rút ví', href: '/wallet', icon: 'Wallet' },
     { label: 'Lịch sử GD', href: '/wallet/transactions', icon: 'History' },
