@@ -36,7 +36,11 @@ export class ImageProxyController {
       throw new BadRequestException('Invalid URL');
     }
 
-    if (!ALLOWED_DOMAINS.some((d) => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`))) {
+    if (
+      !ALLOWED_DOMAINS.some(
+        (d) => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`),
+      )
+    ) {
       throw new BadRequestException('Domain not allowed');
     }
 
@@ -45,7 +49,11 @@ export class ImageProxyController {
         this.http.get(url, { responseType: 'arraybuffer', timeout: 12_000 }),
       );
       const rawCt = resp.headers['content-type'];
-      const ct = Array.isArray(rawCt) ? rawCt[0] : typeof rawCt === 'string' ? rawCt : 'image/jpeg';
+      const ct = Array.isArray(rawCt)
+        ? rawCt[0]
+        : typeof rawCt === 'string'
+          ? rawCt
+          : 'image/jpeg';
       res.setHeader('Content-Type', ct);
       res.setHeader('Cache-Control', 'public, max-age=604800'); // 7 days
       res.setHeader('X-Content-Type-Options', 'nosniff');

@@ -1,8 +1,20 @@
-import { IsBoolean, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import type { WalletTransactionType } from '@prisma/client';
 
-const MANUAL_WALLET_TYPES = ['DEPOSIT', 'WITHDRAWAL'] as const satisfies readonly WalletTransactionType[];
+const MANUAL_WALLET_TYPES = [
+  'DEPOSIT',
+  'WITHDRAWAL',
+] as const satisfies readonly WalletTransactionType[];
 
 export class CreateWalletTransactionDto {
   @IsUUID('4', { message: 'ID khách hàng không hợp lệ' })

@@ -31,7 +31,10 @@ export class OrdersController {
 
   @Post()
   @Roles(Role.ADMIN, Role.SALES)
-  create(@Body() dto: CreateOrderDto, @Request() req: { user: { id: string } }) {
+  create(
+    @Body() dto: CreateOrderDto,
+    @Request() req: { user: { id: string } },
+  ) {
     return this.ordersService.create(dto, req.user.id);
   }
 

@@ -10,7 +10,11 @@ import { Type } from 'class-transformer';
 import { Gender } from '@prisma/client';
 import { CustomerBankInfoDto } from './customer-bank-info.dto';
 
-const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const satisfies readonly Gender[];
+const GENDERS = [
+  'MALE',
+  'FEMALE',
+  'OTHER',
+] as const satisfies readonly Gender[];
 
 export class UpdateCustomerProfileDto {
   @IsString()

@@ -16,7 +16,13 @@ import { isWalletCredit } from './wallet-transaction.utils';
 
 const TX_INCLUDE = {
   customer: {
-    select: { id: true, fullName: true, phone: true, username: true, balance: true },
+    select: {
+      id: true,
+      fullName: true,
+      phone: true,
+      username: true,
+      balance: true,
+    },
   },
   order: {
     select: { id: true, billOfLadingCode: true, type: true, status: true },
@@ -104,9 +110,13 @@ export class WalletTransactionsService {
         orderId: params.orderId,
         status: params.status,
         balanceBefore:
-          params.status === WalletTransactionStatus.APPROVED ? balanceBefore : null,
+          params.status === WalletTransactionStatus.APPROVED
+            ? balanceBefore
+            : null,
         balanceAfter:
-          params.status === WalletTransactionStatus.APPROVED ? balanceAfter : null,
+          params.status === WalletTransactionStatus.APPROVED
+            ? balanceAfter
+            : null,
         createdById: params.createdById,
         processedById: params.processedById,
         processedAt: params.processedAt,
@@ -128,7 +138,9 @@ export class WalletTransactionsService {
   }) {
     const exchangeRate =
       params.exchangeRate ??
-      (params.vndAmount ? params.vndAmount / params.amount : await this.getDefaultExchangeRate());
+      (params.vndAmount
+        ? params.vndAmount / params.amount
+        : await this.getDefaultExchangeRate());
 
     return this.prisma.$transaction((tx) =>
       this.createLedgerEntry(tx, {
@@ -147,7 +159,10 @@ export class WalletTransactionsService {
     );
   }
 
-  async createCustomerRequest(customerId: string, dto: RequestWalletTransactionDto) {
+  async createCustomerRequest(
+    customerId: string,
+    dto: RequestWalletTransactionDto,
+  ) {
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
     });
@@ -186,12 +201,11 @@ export class WalletTransactionsService {
     const approveImmediately = dto.approveImmediately !== false;
     const exchangeRate =
       dto.exchangeRate ??
-      (dto.vndAmount ? dto.vndAmount / dto.amount : await this.getDefaultExchangeRate());
+      (dto.vndAmount
+        ? dto.vndAmount / dto.amount
+        : await this.getDefaultExchangeRate());
 
-    if (
-      approveImmediately &&
-      !isWalletCredit(dto.type)
-    ) {
+    if (approveImmediately && !isWalletCredit(dto.type)) {
       this.ensureSufficientBalance(customer.balance, dto.amount);
     }
 
@@ -239,10 +253,24 @@ export class WalletTransactionsService {
         { code: { contains: params.search, mode: 'insensitive' } },
         { referenceCode: { contains: params.search, mode: 'insensitive' } },
         { note: { contains: params.search, mode: 'insensitive' } },
-        { order: { billOfLadingCode: { contains: params.search, mode: 'insensitive' } } },
-        { customer: { fullName: { contains: params.search, mode: 'insensitive' } } },
-        { customer: { phone: { contains: params.search, mode: 'insensitive' } } },
-        { customer: { username: { contains: params.search, mode: 'insensitive' } } },
+        {
+          order: {
+            billOfLadingCode: { contains: params.search, mode: 'insensitive' },
+          },
+        },
+        {
+          customer: {
+            fullName: { contains: params.search, mode: 'insensitive' },
+          },
+        },
+        {
+          customer: { phone: { contains: params.search, mode: 'insensitive' } },
+        },
+        {
+          customer: {
+            username: { contains: params.search, mode: 'insensitive' },
+          },
+        },
       ];
     }
 
@@ -275,7 +303,9 @@ export class WalletTransactionsService {
     const existing = await this.findOne(id);
 
     if (existing.status !== WalletTransactionStatus.PENDING) {
-      throw new BadRequestException('Chỉ có thể duyệt giao dịch đang chờ xử lý');
+      throw new BadRequestException(
+        'Chỉ có thể duyệt giao dịch đang chờ xử lý',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -323,7 +353,9 @@ export class WalletTransactionsService {
     const existing = await this.findOne(id);
 
     if (existing.status !== WalletTransactionStatus.PENDING) {
-      throw new BadRequestException('Chỉ có thể từ chối giao dịch đang chờ xử lý');
+      throw new BadRequestException(
+        'Chỉ có thể từ chối giao dịch đang chờ xử lý',
+      );
     }
 
     return this.prisma.walletTransaction.update({

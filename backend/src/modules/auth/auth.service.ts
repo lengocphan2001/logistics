@@ -5,7 +5,10 @@ import { CustomersService } from '../customers/customers.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterCustomerDto } from '../customers/dto/register-customer.dto';
 import { UpdateCustomerProfileDto } from '../customers/dto/update-customer-profile.dto';
-import { sanitizeCustomer, type SafeCustomer } from '../../common/utils/sanitize-customer';
+import {
+  sanitizeCustomer,
+  type SafeCustomer,
+} from '../../common/utils/sanitize-customer';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -39,7 +42,12 @@ export class AuthService {
       throw new UnauthorizedException('Tài khoản đã bị khóa');
     }
 
-    const payload = { email: user.email, sub: user.id, role: user.role, accountType: 'user' as const };
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      role: user.role,
+      accountType: 'user' as const,
+    };
     const token = this.jwtService.sign(payload);
 
     return {
@@ -174,7 +182,10 @@ export class AuthService {
     return this.mapCustomerProfile(sanitizeCustomer(customer));
   }
 
-  async updateCustomerProfile(customerId: string, dto: UpdateCustomerProfileDto) {
+  async updateCustomerProfile(
+    customerId: string,
+    dto: UpdateCustomerProfileDto,
+  ) {
     const customer = await this.customersService.updateProfile(customerId, dto);
     return this.mapCustomerProfile(customer);
   }

@@ -41,7 +41,10 @@ export class CustomersController {
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.SALES)
-  update(@Param('id') id: string, @Body() updateCustomerDto: UpdateCustomerDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateCustomerDto: UpdateCustomerDto,
+  ) {
     return this.customersService.update(id, updateCustomerDto);
   }
 

@@ -1,4 +1,10 @@
-import { Injectable, Logger, InternalServerErrorException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { createHash } from 'crypto';
@@ -28,7 +34,8 @@ export class OtapiProvider implements IProductProvider {
     private readonly http: HttpService,
     private readonly config: ConfigService,
   ) {
-    this.baseUrl = config.get('OTAPI_BASE_URL') || 'https://otapi.net/service-json';
+    this.baseUrl =
+      config.get('OTAPI_BASE_URL') || 'https://otapi.net/service-json';
     this.instanceKey = config.get('OTAPI_INSTANCE_KEY') || '';
     this.secret = config.get('OTAPI_SECRET') || '';
     this.language = config.get('OTAPI_LANGUAGE') || 'vi';
@@ -53,21 +60,34 @@ export class OtapiProvider implements IProductProvider {
   private isTransientOtapiError(code: string, description?: string): boolean {
     if (code === 'NotAvailable') return true;
     const msg = (description ?? '').toLowerCase();
-    if (code === 'AccessDenied' && /temporarily|technical|try again|unavailable/.test(msg)) {
+    if (
+      code === 'AccessDenied' &&
+      /temporarily|technical|try again|unavailable/.test(msg)
+    ) {
       return true;
     }
     return false;
   }
 
-  private mapOtapiError(methodName: string, code: string, description?: string): never {
-    this.logger.warn(`OTAPI ${methodName} error: ${code} — ${description ?? ''}`);
+  private mapOtapiError(
+    methodName: string,
+    code: string,
+    description?: string,
+  ): never {
+    this.logger.warn(
+      `OTAPI ${methodName} error: ${code} — ${description ?? ''}`,
+    );
     switch (code) {
       case 'NotFound':
         throw new NotFoundException(description ?? 'Sản phẩm không tồn tại');
       case 'NotAvailable':
-        throw new ServiceUnavailableException('Thông tin sản phẩm chưa sẵn sàng, vui lòng thử lại sau');
+        throw new ServiceUnavailableException(
+          'Thông tin sản phẩm chưa sẵn sàng, vui lòng thử lại sau',
+        );
       case 'ContractViolation':
-        throw new InternalServerErrorException(`Tham số không hợp lệ: ${description ?? ''}`);
+        throw new InternalServerErrorException(
+          `Tham số không hợp lệ: ${description ?? ''}`,
+        );
       case 'AccessDenied':
         if (this.isTransientOtapiError(code, description)) {
           throw new ServiceUnavailableException(
@@ -114,13 +134,19 @@ export class OtapiProvider implements IProductProvider {
    * Low-level HTTP call — returns the entire response body.
    * Callers are responsible for extracting the right field (Result, CategoryInfoList, etc.)
    */
-  private async callRaw<T = any>(methodName: string, params: Record<string, string>): Promise<T> {
+  private async callRaw<T = any>(
+    methodName: string,
+    params: Record<string, string>,
+  ): Promise<T> {
     const baseParams: Record<string, string> = {
       instanceKey: this.instanceKey,
       language: this.language,
       ...params,
     };
-    const { signature, timestamp } = this.buildSignature(methodName, baseParams);
+    const { signature, timestamp } = this.buildSignature(
+      methodName,
+      baseParams,
+    );
     if (signature) {
       baseParams.signature = signature;
       baseParams.timestamp = timestamp;
@@ -145,7 +171,9 @@ export class OtapiProvider implements IProductProvider {
         throw err;
       }
       this.logger.error(`OTAPI ${methodName} network error: ${err?.message}`);
-      throw new InternalServerErrorException('Không thể kết nối đến nguồn sản phẩm');
+      throw new InternalServerErrorException(
+        'Không thể kết nối đến nguồn sản phẩm',
+      );
     }
   }
 
@@ -184,7 +212,9 @@ export class OtapiProvider implements IProductProvider {
         .slice(0, limit);
     }
 
-    this.logger.debug(`getCategories(${parentId}, ${providerAlias}) → ${mapped.length} items`);
+    this.logger.debug(
+      `getCategories(${parentId}, ${providerAlias}) → ${mapped.length} items`,
+    );
     return mapped;
   }
 
@@ -218,7 +248,12 @@ export class OtapiProvider implements IProductProvider {
     priceMax?: number;
   }): Promise<SearchResult> {
     if (!params.keyword && !params.categoryId) {
-      return { items: [], total: 0, page: params.page, pageSize: params.pageSize };
+      return {
+        items: [],
+        total: 0,
+        page: params.page,
+        pageSize: params.pageSize,
+      };
     }
 
     const alias = params.providerAlias || 'p1';
@@ -227,12 +262,18 @@ export class OtapiProvider implements IProductProvider {
 
     // Build XML parameters — OTAPI SearchItemsFrame requires xmlParameters
     const xmlParts: string[] = [];
-    if (params.keyword) xmlParts.push(`<ItemTitle>${this.escapeXml(params.keyword)}</ItemTitle>`);
-    if (params.categoryId) xmlParts.push(`<CategoryId>${params.categoryId}</CategoryId>`);
-    if (params.sortField) xmlParts.push(`<SortField>${params.sortField}</SortField>`);
-    if (params.sortOrder) xmlParts.push(`<SortOrder>${params.sortOrder}</SortOrder>`);
-    if (params.priceMin != null) xmlParts.push(`<PriceFrom>${params.priceMin}</PriceFrom>`);
-    if (params.priceMax != null) xmlParts.push(`<PriceTo>${params.priceMax}</PriceTo>`);
+    if (params.keyword)
+      xmlParts.push(`<ItemTitle>${this.escapeXml(params.keyword)}</ItemTitle>`);
+    if (params.categoryId)
+      xmlParts.push(`<CategoryId>${params.categoryId}</CategoryId>`);
+    if (params.sortField)
+      xmlParts.push(`<SortField>${params.sortField}</SortField>`);
+    if (params.sortOrder)
+      xmlParts.push(`<SortOrder>${params.sortOrder}</SortOrder>`);
+    if (params.priceMin != null)
+      xmlParts.push(`<PriceFrom>${params.priceMin}</PriceFrom>`);
+    if (params.priceMax != null)
+      xmlParts.push(`<PriceTo>${params.priceMax}</PriceTo>`);
     const xmlParameters = `<SearchItemsParameters>${xmlParts.join('')}</SearchItemsParameters>`;
 
     const data = await this.callRaw('SearchItemsFrame', {
@@ -247,7 +288,9 @@ export class OtapiProvider implements IProductProvider {
     const items: any[] = result?.Items?.Content ?? [];
     const total: number = result?.Items?.TotalCount ?? items.length;
 
-    this.logger.debug(`search "${params.keyword ?? params.categoryId}" → ${items.length}/${total} items`);
+    this.logger.debug(
+      `search "${params.keyword ?? params.categoryId}" → ${items.length}/${total} items`,
+    );
 
     return {
       items: items.map((item) => this.mapItem(item, alias)),
@@ -258,11 +301,19 @@ export class OtapiProvider implements IProductProvider {
   }
 
   // ─── Item detail ──────────────────────────────────────────────────────────
-  async getItemDetail(providerAlias: string, itemId: string): Promise<ProductItem> {
-    const data = await this.callRaw('GetItemFullInfo', { providerAlias, itemId });
+  async getItemDetail(
+    providerAlias: string,
+    itemId: string,
+  ): Promise<ProductItem> {
+    const data = await this.callRaw('GetItemFullInfo', {
+      providerAlias,
+      itemId,
+    });
     // Response field: OtapiItemFullInfo (not Result)
     const item = data?.OtapiItemFullInfo ?? data?.Result ?? data;
-    this.logger.debug(`getItemDetail ${itemId} → title="${item?.Title?.slice(0, 40)}"`);
+    this.logger.debug(
+      `getItemDetail ${itemId} → title="${item?.Title?.slice(0, 40)}"`,
+    );
     return this.mapItemFull(item, providerAlias);
   }
 
@@ -278,17 +329,18 @@ export class OtapiProvider implements IProductProvider {
 
   private platformFromAlias(alias: string): string {
     const map: Record<string, string> = {
-      p1: 'taobao', p6: '1688', p7: 'jd', p10: 'alibaba', p11: 'aliexpress',
+      p1: 'taobao',
+      p6: '1688',
+      p7: 'jd',
+      p10: 'alibaba',
+      p11: 'aliexpress',
     };
     return map[alias] || alias;
   }
 
   private mapItem(raw: any, alias: string): ProductItem {
     // Price: OTAPI nests price as Price.OriginalPrice (CNY)
-    const originalRaw =
-      raw.Price?.OriginalPrice ??
-      raw.OriginalPrice ??
-      null;
+    const originalRaw = raw.Price?.OriginalPrice ?? raw.OriginalPrice ?? null;
     const marginRaw = raw.Price?.MarginPrice ?? null;
     const priceCny = Number(marginRaw ?? originalRaw ?? 0);
     const originalPriceCny =
@@ -297,7 +349,8 @@ export class OtapiProvider implements IProductProvider {
         : undefined;
 
     // Image: prefer medium thumbnail for list view
-    const mainPic = raw.Pictures?.find((p: any) => p.IsMain) ?? raw.Pictures?.[0];
+    const mainPic =
+      raw.Pictures?.find((p: any) => p.IsMain) ?? raw.Pictures?.[0];
     const image =
       mainPic?.Medium?.Url ??
       mainPic?.Url ??
@@ -306,7 +359,8 @@ export class OtapiProvider implements IProductProvider {
       '';
 
     // Sold count from FeaturedValues array
-    const featuredValues: { Name: string; Value: string }[] = raw.FeaturedValues ?? [];
+    const featuredValues: { Name: string; Value: string }[] =
+      raw.FeaturedValues ?? [];
     const soldStr =
       featuredValues.find((f) => f.Name === 'SalesInLast30Days')?.Value ??
       featuredValues.find((f) => f.Name === 'TotalSales')?.Value ??
@@ -319,7 +373,9 @@ export class OtapiProvider implements IProductProvider {
       providerAlias: alias,
       title: raw.Title ?? raw.RussianTitle ?? raw.Name ?? '',
       image,
-      images: (raw.Pictures ?? []).map((p: any) => p.Large?.Url ?? p.Url ?? '').filter(Boolean),
+      images: (raw.Pictures ?? [])
+        .map((p: any) => p.Large?.Url ?? p.Url ?? '')
+        .filter(Boolean),
       priceCny,
       originalPriceCny,
       shopId: String(raw.VendorId ?? raw.ShopId ?? ''),
@@ -337,26 +393,34 @@ export class OtapiProvider implements IProductProvider {
 
     // ── Build attribute lookup: {Pid+Vid → {PropertyName, Value}} ────────────
     const attrMap = new Map<string, { name: string; value: string }>();
-    const confAttrs: any[] = (raw.Attributes ?? []).filter((a: any) => a.IsConfigurator);
+    const confAttrs: any[] = (raw.Attributes ?? []).filter(
+      (a: any) => a.IsConfigurator,
+    );
     for (const a of confAttrs) {
-      attrMap.set(`${a.Pid}:${a.Vid}`, { name: a.PropertyName ?? '', value: a.Value ?? '' });
+      attrMap.set(`${a.Pid}:${a.Vid}`, {
+        name: a.PropertyName ?? '',
+        value: a.Value ?? '',
+      });
     }
 
     // ── Group configurator attributes by PropertyName → variant groups ────────
     const propGroups = new Map<string, Map<string, string>>(); // PropertyName → Map<Vid, Value>
     for (const a of confAttrs) {
-      if (!propGroups.has(a.PropertyName)) propGroups.set(a.PropertyName, new Map());
+      if (!propGroups.has(a.PropertyName))
+        propGroups.set(a.PropertyName, new Map());
       propGroups.get(a.PropertyName)!.set(a.Vid, a.Value ?? '');
     }
 
-    const properties = Array.from(propGroups.entries()).map(([propName, vidMap]) => ({
-      name: propName,
-      values: Array.from(vidMap.entries()).map(([vid, val]) => ({
-        id: vid,
-        name: val,
-        image: undefined as string | undefined,
-      })),
-    }));
+    const properties = Array.from(propGroups.entries()).map(
+      ([propName, vidMap]) => ({
+        name: propName,
+        values: Array.from(vidMap.entries()).map(([vid, val]) => ({
+          id: vid,
+          name: val,
+          image: undefined as string | undefined,
+        })),
+      }),
+    );
 
     // ── Map ConfiguredItems to SKUs ────────────────────────────────────────────
     const configurations: any[] = raw.ConfiguredItems ?? [];
@@ -369,7 +433,9 @@ export class OtapiProvider implements IProductProvider {
       return {
         id: String(cfg.Id ?? ''),
         name: Object.values(props).join(' / ') || String(cfg.Id),
-        priceCny: Number(cfg.Price?.OriginalPrice ?? cfg.Price?.MarginPrice ?? base.priceCny),
+        priceCny: Number(
+          cfg.Price?.OriginalPrice ?? cfg.Price?.MarginPrice ?? base.priceCny,
+        ),
         stock: Number(cfg.Quantity ?? 0),
         properties: props,
       };

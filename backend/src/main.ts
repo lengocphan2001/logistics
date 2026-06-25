@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
 
 const DEFAULT_CORS_ORIGINS = [
   'http://localhost:3000',
@@ -63,4 +62,4 @@ async function bootstrap() {
   console.log(`Application is running on: http://localhost:${port}`);
   console.log(`CORS origins: ${allowedOrigins.join(', ')}`);
 }
-bootstrap();
+void bootstrap();

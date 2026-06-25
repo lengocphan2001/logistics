@@ -1,6 +1,5 @@
 import {
   IsIn,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -9,7 +8,10 @@ import {
 import { Type } from 'class-transformer';
 import type { WalletTransactionType } from '@prisma/client';
 
-const ORDER_CHARGE_TYPES = ['ORDER_DEPOSIT', 'ORDER_PAYMENT'] as const satisfies readonly WalletTransactionType[];
+const ORDER_CHARGE_TYPES = [
+  'ORDER_DEPOSIT',
+  'ORDER_PAYMENT',
+] as const satisfies readonly WalletTransactionType[];
 
 export class ChargeOrderWalletDto {
   @IsIn([...ORDER_CHARGE_TYPES], {

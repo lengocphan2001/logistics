@@ -9,7 +9,12 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderStatus, PaymentMethod, PaymentStatus, OrderType } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  OrderType,
+} from '@prisma/client';
 
 export class UpdateOrderDto {
   @IsEnum(OrderType)

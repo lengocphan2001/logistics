@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, Suspense } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, CheckCircle, AlertTriangle, ArrowLeft, Info } from 'lucide-react';
@@ -25,6 +25,30 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cnyToVnd, formatCny, formatVnd } from '@/lib/currency';
+
+type CheckoutForm = {
+  receiverName: string;
+  receiverPhone: string;
+  receiverAddress: string;
+  receiverProvince: string;
+  receiverDistrict: string;
+  note: string;
+  cnWarehouseId: string;
+  vnWarehouseId: string;
+  shippingMethod: string;
+};
+
+const EMPTY_FORM: CheckoutForm = {
+  receiverName: '',
+  receiverPhone: '',
+  receiverAddress: '',
+  receiverProvince: '',
+  receiverDistrict: '',
+  note: '',
+  cnWarehouseId: '',
+  vnWarehouseId: '',
+  shippingMethod: SHIPPING_METHODS[0].value,
+};
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
@@ -54,44 +78,18 @@ function CheckoutContent() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const [form, setForm] = useState({
-    receiverName: '',
-    receiverPhone: '',
-    receiverAddress: '',
-    receiverProvince: '',
-    receiverDistrict: '',
-    note: '',
-    cnWarehouseId: '',
-    vnWarehouseId: '',
-    shippingMethod: SHIPPING_METHODS[0].value,
-  });
+  const [form, setForm] = useState<CheckoutForm>(EMPTY_FORM);
   const [services, setServices] = useState<Record<string, boolean>>({});
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<string[] | null>(null);
 
-  useEffect(() => {
-    if (profile) {
-      setForm((prev) => ({
-        ...prev,
-        receiverName: profile.name || '',
-        receiverPhone: profile.phone || '',
-        receiverAddress: profile.shippingAddress || profile.address || '',
-      }));
-    }
-  }, [profile]);
-
-  useEffect(() => {
-    if (cnWarehouses.length && !form.cnWarehouseId) {
-      setForm((prev) => ({ ...prev, cnWarehouseId: cnWarehouses[0].id }));
-    }
-  }, [cnWarehouses, form.cnWarehouseId]);
-
-  useEffect(() => {
-    if (vnWarehouses.length && !form.vnWarehouseId) {
-      setForm((prev) => ({ ...prev, vnWarehouseId: vnWarehouses[0].id }));
-    }
-  }, [vnWarehouses, form.vnWarehouseId]);
+  const cnWarehouseId = form.cnWarehouseId || cnWarehouses[0]?.id || '';
+  const vnWarehouseId = form.vnWarehouseId || vnWarehouses[0]?.id || '';
+  const receiverName = form.receiverName || profile?.name || '';
+  const receiverPhone = form.receiverPhone || profile?.phone || '';
+  const receiverAddress =
+    form.receiverAddress || profile?.shippingAddress || profile?.address || '';
 
   const selectedItems =
     cart?.items.filter((i) => selectedIds.length === 0 || selectedIds.includes(i.id)) ?? [];
@@ -107,11 +105,11 @@ function CheckoutContent() {
   const grandTotalVnd = goodsTotalVnd + serviceFeeVnd;
 
   const handleSubmit = async () => {
-    if (!form.receiverName || !form.receiverPhone || !form.receiverAddress) {
+    if (!receiverName || !receiverPhone || !receiverAddress) {
       toast.error('Vui lòng điền đầy đủ thông tin người nhận');
       return;
     }
-    if (!form.cnWarehouseId || !form.vnWarehouseId) {
+    if (!cnWarehouseId || !vnWarehouseId) {
       toast.error('Vui lòng chọn kho Trung Quốc và kho Việt Nam');
       return;
     }
@@ -123,15 +121,15 @@ function CheckoutContent() {
     setSubmitting(true);
     try {
       const result = await cartService.checkout({
-        receiverName: form.receiverName,
-        receiverPhone: form.receiverPhone,
-        receiverAddress: form.receiverAddress,
+        receiverName,
+        receiverPhone,
+        receiverAddress,
         receiverProvince: form.receiverProvince || undefined,
         receiverDistrict: form.receiverDistrict || undefined,
         note: form.note || undefined,
         cartItemIds: selectedIds.length > 0 ? selectedIds : undefined,
-        cnWarehouseId: form.cnWarehouseId,
-        vnWarehouseId: form.vnWarehouseId,
+        cnWarehouseId,
+        vnWarehouseId,
         shippingMethod:
           SHIPPING_METHODS.find((m) => m.value === form.shippingMethod)?.label ??
           form.shippingMethod,
@@ -223,7 +221,7 @@ function CheckoutContent() {
                   Kho Trung Quốc <span className="text-red-500">*</span>
                 </Label>
                 <Select
-                  value={form.cnWarehouseId}
+                  value={cnWarehouseId}
                   onValueChange={(v) => setForm((f) => ({ ...f, cnWarehouseId: v }))}
                   disabled={cnLoading || cnWarehouses.length === 0}
                 >
@@ -246,7 +244,7 @@ function CheckoutContent() {
                   Kho Việt Nam <span className="text-red-500">*</span>
                 </Label>
                 <Select
-                  value={form.vnWarehouseId}
+                  value={vnWarehouseId}
                   onValueChange={(v) => setForm((f) => ({ ...f, vnWarehouseId: v }))}
                   disabled={vnLoading || vnWarehouses.length === 0}
                 >
@@ -304,7 +302,7 @@ function CheckoutContent() {
                   Họ tên <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  value={form.receiverName}
+                  value={receiverName}
                   onChange={(e) => setForm((f) => ({ ...f, receiverName: e.target.value }))}
                   className="border-gray-200"
                 />
@@ -314,7 +312,7 @@ function CheckoutContent() {
                   Số điện thoại <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  value={form.receiverPhone}
+                  value={receiverPhone}
                   onChange={(e) => setForm((f) => ({ ...f, receiverPhone: e.target.value }))}
                   className="border-gray-200"
                 />
@@ -325,7 +323,7 @@ function CheckoutContent() {
                 Địa chỉ nhận hàng tại Việt Nam <span className="text-red-500">*</span>
               </Label>
               <Input
-                value={form.receiverAddress}
+                value={receiverAddress}
                 onChange={(e) => setForm((f) => ({ ...f, receiverAddress: e.target.value }))}
                 className="border-gray-200"
               />

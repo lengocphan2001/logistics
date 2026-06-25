@@ -22,11 +22,17 @@ import { CustomerAccountGuard } from '../../common/guards/customer-account.guard
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Role, WalletTransactionStatus, WalletTransactionType } from '@prisma/client';
+import {
+  Role,
+  WalletTransactionStatus,
+  WalletTransactionType,
+} from '@prisma/client';
 
 @Controller('wallet-transactions')
 export class WalletTransactionsController {
-  constructor(private readonly walletTransactionsService: WalletTransactionsService) {}
+  constructor(
+    private readonly walletTransactionsService: WalletTransactionsService,
+  ) {}
 
   @Post('request')
   @UseGuards(JwtAuthGuard, CustomerAccountGuard)
@@ -104,6 +110,10 @@ export class WalletTransactionsController {
     @Body() dto: RejectWalletTransactionDto,
     @Request() req: { user: { id: string } },
   ) {
-    return this.walletTransactionsService.reject(id, req.user.id, dto.rejectReason);
+    return this.walletTransactionsService.reject(
+      id,
+      req.user.id,
+      dto.rejectReason,
+    );
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { ProductsService } from '../products/products.service';
 import { UpsertCartItemDto } from './dto/upsert-cart-item.dto';
@@ -6,17 +10,24 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
 type CartItemProperty = { name: string; value: string };
 
-function serializeCartItem<T extends { priceCny: { toString(): string } | number; properties?: unknown }>(
+function serializeCartItem<
+  T extends { priceCny: { toString(): string } | number; properties?: unknown },
+>(
   item: T,
-): Omit<T, 'priceCny' | 'properties'> & { priceCny: number; properties?: CartItemProperty[] } {
+): Omit<T, 'priceCny' | 'properties'> & {
+  priceCny: number;
+  properties?: CartItemProperty[];
+} {
   const props = item.properties;
   const properties = Array.isArray(props)
     ? (props as CartItemProperty[])
     : props && typeof props === 'object'
-      ? Object.entries(props as Record<string, string>).map(([name, value]) => ({
-          name,
-          value: String(value),
-        }))
+      ? Object.entries(props as Record<string, string>).map(
+          ([name, value]) => ({
+            name,
+            value: String(value),
+          }),
+        )
       : undefined;
 
   return {
@@ -107,7 +118,9 @@ export class CartService {
         data: {
           quantity: dto.quantity,
           priceCny,
-          ...(dto.properties?.length ? { properties: dto.properties as any } : {}),
+          ...(dto.properties?.length
+            ? { properties: dto.properties as any }
+            : {}),
         },
       });
       return serializeCartItem(updated as any);
@@ -134,7 +147,11 @@ export class CartService {
     return serializeCartItem(created as any);
   }
 
-  async updateItem(customerId: string, cartItemId: string, dto: UpdateCartItemDto) {
+  async updateItem(
+    customerId: string,
+    cartItemId: string,
+    dto: UpdateCartItemDto,
+  ) {
     const cart = await this.prisma.cart.findUnique({ where: { customerId } });
     if (!cart) throw new NotFoundException('Giỏ hàng không tồn tại');
 
@@ -145,7 +162,11 @@ export class CartService {
 
     const data: { quantity?: number; note?: string | null } = {};
 
-    if (dto.quantity !== undefined && dto.quantity !== null && dto.quantity !== '') {
+    if (
+      dto.quantity !== undefined &&
+      dto.quantity !== null &&
+      dto.quantity !== ''
+    ) {
       const q = Math.floor(Number(dto.quantity));
       if (!Number.isFinite(q) || q < 1) {
         throw new BadRequestException('Số lượng phải là số nguyên >= 1');
@@ -172,8 +193,12 @@ export class CartService {
     const cart = await this.prisma.cart.findUnique({ where: { customerId } });
     if (!cart) throw new NotFoundException('Giỏ hàng không tồn tại');
 
-    const items = await this.prisma.cartItem.findMany({ where: { cartId: cart.id } });
-    const toDelete = items.filter((i) => (i.shopId || i.shopName || '__unknown__') === shopKey);
+    const items = await this.prisma.cartItem.findMany({
+      where: { cartId: cart.id },
+    });
+    const toDelete = items.filter(
+      (i) => (i.shopId || i.shopName || '__unknown__') === shopKey,
+    );
     if (toDelete.length === 0) return { success: true, deleted: 0 };
 
     await this.prisma.cartItem.deleteMany({

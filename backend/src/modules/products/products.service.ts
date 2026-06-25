@@ -25,7 +25,11 @@ export class ProductsService {
     this.cacheTtl = (Number(config.get('PRODUCT_CACHE_TTL')) || 300) * 1000;
   }
 
-  private async cached<T>(key: string, fn: () => Promise<T>, ttl?: number): Promise<T> {
+  private async cached<T>(
+    key: string,
+    fn: () => Promise<T>,
+    ttl?: number,
+  ): Promise<T> {
     const hit = await this.cache.get<T>(key);
     if (hit !== undefined && hit !== null) return hit;
     const value = await fn();
@@ -60,7 +64,8 @@ export class ProductsService {
   ): Promise<CategoryInfo[]> {
     const id = parentId || '0';
     const provider = providerAlias || 'p1';
-    const effectiveLimit = id === '0' ? (limit ?? HOT_ROOT_CATEGORY_LIMIT) : undefined;
+    const effectiveLimit =
+      id === '0' ? (limit ?? HOT_ROOT_CATEGORY_LIMIT) : undefined;
     const cacheKey = `cat:${provider}:${id}:${effectiveLimit ?? 'all'}`;
     return this.cachedWithStaleFallback(
       cacheKey,
@@ -69,7 +74,10 @@ export class ProductsService {
     );
   }
 
-  getCategoryFlyout(parentId: string, providerAlias?: string): Promise<CategoryFlyoutSection[]> {
+  getCategoryFlyout(
+    parentId: string,
+    providerAlias?: string,
+  ): Promise<CategoryFlyoutSection[]> {
     const provider = providerAlias || 'p1';
     const cacheKey = `cat-flyout:${provider}:${parentId}`;
     return this.cachedWithStaleFallback(
@@ -112,6 +120,9 @@ export class ProductsService {
     const detail = await this.getItemDetail(providerAlias, itemId);
     const sku = detail.skus.find((s) => s.id === skuId);
     if (!sku?.properties) return [];
-    return Object.entries(sku.properties).map(([name, value]) => ({ name, value }));
+    return Object.entries(sku.properties).map(([name, value]) => ({
+      name,
+      value,
+    }));
   }
 }

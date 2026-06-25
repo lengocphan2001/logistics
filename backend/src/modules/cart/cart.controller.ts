@@ -8,13 +8,13 @@ import {
   Body,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { UpsertCartItemDto } from './dto/upsert-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CustomerAccountGuard } from '../../common/guards/customer-account.guard';
+import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('customer/cart')
 @UseGuards(JwtAuthGuard, CustomerAccountGuard)
@@ -23,38 +23,41 @@ export class CartController {
 
   @Get()
   getCart(
-    @Request() req: any,
+    @CurrentUser() user: AuthUser,
     @Query('enrichProperties') enrichProperties?: string,
   ) {
-    return this.cartService.getCart(req.user.id, enrichProperties === '1' || enrichProperties === 'true');
+    return this.cartService.getCart(
+      user.id,
+      enrichProperties === '1' || enrichProperties === 'true',
+    );
   }
 
   @Post('items')
-  upsertItem(@Request() req: any, @Body() dto: UpsertCartItemDto) {
-    return this.cartService.upsertItem(req.user.id, dto);
+  upsertItem(@CurrentUser() user: AuthUser, @Body() dto: UpsertCartItemDto) {
+    return this.cartService.upsertItem(user.id, dto);
   }
 
   @Patch('items/:id')
   updateItem(
-    @Request() req: any,
+    @CurrentUser() user: AuthUser,
     @Param('id') id: string,
     @Body() dto: UpdateCartItemDto,
   ) {
-    return this.cartService.updateItem(req.user.id, id, dto);
+    return this.cartService.updateItem(user.id, id, dto);
   }
 
   @Delete('shops/:shopKey')
-  removeShop(@Request() req: any, @Param('shopKey') shopKey: string) {
-    return this.cartService.removeShopItems(req.user.id, decodeURIComponent(shopKey));
+  removeShop(@CurrentUser() user: AuthUser, @Param('shopKey') shopKey: string) {
+    return this.cartService.removeShopItems(user.id, decodeURIComponent(shopKey));
   }
 
   @Delete('items/:id')
-  removeItem(@Request() req: any, @Param('id') id: string) {
-    return this.cartService.removeItem(req.user.id, id);
+  removeItem(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.cartService.removeItem(user.id, id);
   }
 
   @Delete()
-  clearCart(@Request() req: any) {
-    return this.cartService.clearCart(req.user.id);
+  clearCart(@CurrentUser() user: AuthUser) {
+    return this.cartService.clearCart(user.id);
   }
 }

@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -16,7 +20,9 @@ export class UsersService {
       where: { email },
     });
     if (existingUser) {
-      throw new ConflictException('Email đã được sử dụng bởi một tài khoản khác');
+      throw new ConflictException(
+        'Email đã được sử dụng bởi một tài khoản khác',
+      );
     }
 
     if (role === Role.WAREHOUSE_MANAGER && warehouseId) {
@@ -89,7 +95,9 @@ export class UsersService {
         where: { email: updateUserDto.email },
       });
       if (existingUser) {
-        throw new ConflictException('Email đã được sử dụng bởi một tài khoản khác');
+        throw new ConflictException(
+          'Email đã được sử dụng bởi một tài khoản khác',
+        );
       }
     }
 

@@ -21,8 +21,8 @@ import { CartModule } from './modules/cart/cart.module';
     ConfigModule.forRoot({ isGlobal: true }),
 
     ThrottlerModule.forRoot([
-      { name: 'short',  ttl: 60_000,  limit: 30  },  // 30 req/min default
-      { name: 'medium', ttl: 60_000,  limit: 100 },  // 100 req/min general
+      { name: 'short', ttl: 60_000, limit: 30 }, // 30 req/min default
+      { name: 'medium', ttl: 60_000, limit: 100 }, // 100 req/min general
     ]),
 
     CacheModule.register({ isGlobal: true, ttl: 300_000 }), // 5 min default

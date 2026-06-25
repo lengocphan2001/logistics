@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma.service';
@@ -12,80 +16,45 @@ import { sanitizeCustomer } from '../../common/utils/sanitize-customer';
 
 import * as bcrypt from 'bcrypt';
 
-
-
 const CUSTOMER_INCLUDE = {
-
   _count: { select: { orders: true } },
-
 };
 
-
-
 @Injectable()
-
 export class CustomersService {
-
   constructor(private prisma: PrismaService) {}
 
-
-
   async register(dto: RegisterCustomerDto) {
-
     const { username, phone, email } = dto;
 
-
-
     const existingUsername = await this.prisma.customer.findUnique({
-
       where: { username },
-
     });
 
     if (existingUsername) {
-
       throw new ConflictException('Tên đăng nhập đã tồn tại trong hệ thống');
-
     }
 
-
-
     const existingPhone = await this.prisma.customer.findUnique({
-
       where: { phone },
-
     });
 
     if (existingPhone) {
-
       throw new ConflictException('Số điện thoại đã được sử dụng');
-
     }
 
-
-
     const existingEmail = await this.prisma.customer.findUnique({
-
       where: { email },
-
     });
 
     if (existingEmail) {
-
       throw new ConflictException('Email đã được sử dụng');
-
     }
-
-
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-
-
     const customer = await this.prisma.customer.create({
-
       data: {
-
         username: dto.username,
 
         password: hashedPassword,
@@ -95,43 +64,34 @@ export class CustomersService {
         phone: dto.phone,
 
         email: dto.email,
-
       },
 
       include: CUSTOMER_INCLUDE,
-
     });
 
-
-
     return sanitizeCustomer(customer);
-
   }
 
-
-
-  async findAll(params: { page?: number; limit?: number; search?: string; status?: string }) {
-
+  async findAll(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+  }) {
     const page = params.page ?? 1;
 
     const limit = params.limit ?? 20;
 
     const skip = (page - 1) * limit;
 
-
-
     const where: Record<string, unknown> = {};
 
     if (params.status) {
-
       where.status = params.status;
-
     }
 
     if (params.search) {
-
       where.OR = [
-
         { username: { contains: params.search, mode: 'insensitive' } },
 
         { fullName: { contains: params.search, mode: 'insensitive' } },
@@ -139,17 +99,11 @@ export class CustomersService {
         { phone: { contains: params.search, mode: 'insensitive' } },
 
         { email: { contains: params.search, mode: 'insensitive' } },
-
       ];
-
     }
 
-
-
     const [data, total] = await Promise.all([
-
       this.prisma.customer.findMany({
-
         where,
 
         include: CUSTOMER_INCLUDE,
@@ -159,17 +113,12 @@ export class CustomersService {
         skip,
 
         take: limit,
-
       }),
 
       this.prisma.customer.count({ where }),
-
     ]);
 
-
-
     return {
-
       data: data.map(sanitizeCustomer),
 
       total,
@@ -179,27 +128,18 @@ export class CustomersService {
       limit,
 
       totalPages: Math.ceil(total / limit),
-
     };
-
   }
 
-
-
   async findOne(id: string) {
-
     const customer = await this.prisma.customer.findUnique({
-
       where: { id },
 
       include: {
-
         ...CUSTOMER_INCLUDE,
 
         orders: {
-
           select: {
-
             id: true,
 
             billOfLadingCode: true,
@@ -209,30 +149,21 @@ export class CustomersService {
             totalFee: true,
 
             createdAt: true,
-
           },
 
           orderBy: { createdAt: 'desc' },
 
           take: 10,
-
         },
-
       },
-
     });
 
     if (!customer) {
-
       throw new NotFoundException('Không tìm thấy khách hàng');
-
     }
 
     return sanitizeCustomer(customer);
-
   }
-
-
 
   private async assertUniqueContact(
     id: string,
@@ -318,26 +249,15 @@ export class CustomersService {
     return sanitizeCustomer(updated);
   }
 
-
-
   async remove(id: string) {
-
     const customer = await this.prisma.customer.findUnique({ where: { id } });
 
     if (!customer) {
-
       throw new NotFoundException('Không tìm thấy khách hàng');
-
     }
-
-
 
     await this.prisma.customer.delete({ where: { id } });
 
     return { message: 'Xóa khách hàng thành công' };
-
   }
-
 }
-
-

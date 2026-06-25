@@ -36,7 +36,15 @@ export class ProductsController {
     const id = parentId || '0';
     const parsed = limitStr ? parseInt(limitStr, 10) : HOT_ROOT_CATEGORY_LIMIT;
     const limit =
-      id === '0' ? Math.min(Math.max(Number.isNaN(parsed) ? HOT_ROOT_CATEGORY_LIMIT : parsed, 1), 30) : undefined;
+      id === '0'
+        ? Math.min(
+            Math.max(
+              Number.isNaN(parsed) ? HOT_ROOT_CATEGORY_LIMIT : parsed,
+              1,
+            ),
+            30,
+          )
+        : undefined;
     return this.productsService.getCategories(parentId, provider, limit);
   }
 

@@ -22,7 +22,9 @@ import {
 } from './dto/charge-order-wallet.dto';
 
 const ORDER_INCLUDE = {
-  customer: { select: { id: true, fullName: true, phone: true, username: true } },
+  customer: {
+    select: { id: true, fullName: true, phone: true, username: true },
+  },
   createdBy: { select: { id: true, name: true, email: true } },
   driver: { select: { id: true, name: true, email: true } },
   warehouse: { select: { id: true, name: true, code: true } },
@@ -97,13 +99,18 @@ export class OrdersService {
         paymentMethod,
         paymentStatus,
         note,
-        estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : undefined,
+        estimatedDelivery: estimatedDelivery
+          ? new Date(estimatedDelivery)
+          : undefined,
         customerId,
         createdById,
         driverId,
         warehouseId,
         events: {
-          create: { status: OrderStatus.DEPOSIT_PAID, note: 'Đơn hàng được tạo' },
+          create: {
+            status: OrderStatus.DEPOSIT_PAID,
+            note: 'Đơn hàng được tạo',
+          },
         },
       },
       include: ORDER_INCLUDE,
@@ -192,11 +199,17 @@ export class OrdersService {
     return order;
   }
 
-  async chargeWallet(orderId: string, dto: ChargeOrderWalletDto, userId: string) {
+  async chargeWallet(
+    orderId: string,
+    dto: ChargeOrderWalletDto,
+    userId: string,
+  ) {
     const order = await this.findOne(orderId);
 
     if (!order.customerId) {
-      throw new BadRequestException('Đơn hàng chưa gắn khách hàng, không thể trừ ví');
+      throw new BadRequestException(
+        'Đơn hàng chưa gắn khách hàng, không thể trừ ví',
+      );
     }
 
     const defaultNote =
@@ -204,14 +217,15 @@ export class OrdersService {
         ? `Đặt cọc đơn ${order.billOfLadingCode}`
         : `Thanh toán đơn ${order.billOfLadingCode}`;
 
-    const walletTx = await this.walletTransactionsService.recordSystemTransaction({
-      customerId: order.customerId,
-      type: dto.type,
-      amount: dto.amount,
-      orderId: order.id,
-      note: dto.note ?? defaultNote,
-      createdById: userId,
-    });
+    const walletTx =
+      await this.walletTransactionsService.recordSystemTransaction({
+        customerId: order.customerId,
+        type: dto.type,
+        amount: dto.amount,
+        orderId: order.id,
+        note: dto.note ?? defaultNote,
+        createdById: userId,
+      });
 
     const orderUpdate: Prisma.OrderUpdateInput = {};
 
@@ -234,21 +248,28 @@ export class OrdersService {
     return { transaction: walletTx, order: updatedOrder };
   }
 
-  async refundWallet(orderId: string, dto: RefundOrderWalletDto, userId: string) {
+  async refundWallet(
+    orderId: string,
+    dto: RefundOrderWalletDto,
+    userId: string,
+  ) {
     const order = await this.findOne(orderId);
 
     if (!order.customerId) {
-      throw new BadRequestException('Đơn hàng chưa gắn khách hàng, không thể hoàn tiền');
+      throw new BadRequestException(
+        'Đơn hàng chưa gắn khách hàng, không thể hoàn tiền',
+      );
     }
 
-    const walletTx = await this.walletTransactionsService.recordSystemTransaction({
-      customerId: order.customerId,
-      type: WalletTransactionType.ORDER_REFUND,
-      amount: dto.amount,
-      orderId: order.id,
-      note: dto.note ?? `Hoàn tiền đơn ${order.billOfLadingCode}`,
-      createdById: userId,
-    });
+    const walletTx =
+      await this.walletTransactionsService.recordSystemTransaction({
+        customerId: order.customerId,
+        type: WalletTransactionType.ORDER_REFUND,
+        amount: dto.amount,
+        orderId: order.id,
+        note: dto.note ?? `Hoàn tiền đơn ${order.billOfLadingCode}`,
+        createdById: userId,
+      });
 
     return { transaction: walletTx };
   }
@@ -259,7 +280,8 @@ export class OrdersService {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
 
-    const { status, eventNote, eventLocation, estimatedDelivery, ...rest } = updateOrderDto;
+    const { status, eventNote, eventLocation, estimatedDelivery, ...rest } =
+      updateOrderDto;
 
     const feeTransfer = rest.feeTransfer ?? Number(order.feeTransfer);
     const feeInsurance = rest.feeInsurance ?? Number(order.feeInsurance);
@@ -274,14 +296,20 @@ export class OrdersService {
         ...(status
           ? {
               status,
-              ...(status === OrderStatus.COMPLETED ? { deliveredAt: new Date() } : {}),
-              ...(status === OrderStatus.CANCELLED ? { cancelledAt: new Date() } : {}),
+              ...(status === OrderStatus.COMPLETED
+                ? { deliveredAt: new Date() }
+                : {}),
+              ...(status === OrderStatus.CANCELLED
+                ? { cancelledAt: new Date() }
+                : {}),
               events: {
                 create: { status, note: eventNote, location: eventLocation },
               },
             }
           : {}),
-        ...(estimatedDelivery ? { estimatedDelivery: new Date(estimatedDelivery) } : {}),
+        ...(estimatedDelivery
+          ? { estimatedDelivery: new Date(estimatedDelivery) }
+          : {}),
       },
       include: ORDER_INCLUDE,
     });
@@ -503,7 +531,9 @@ export class OrdersService {
     }
 
     // Exchange rate for VND reference
-    const settings = await this.prisma.appSetting.findUnique({ where: { id: 'default' } });
+    const settings = await this.prisma.appSetting.findUnique({
+      where: { id: 'default' },
+    });
     const rate = Number(settings?.vndPerCny ?? 3500);
 
     const createdOrders: string[] = [];
@@ -548,7 +578,7 @@ export class OrdersService {
                 quantity: i.quantity,
                 totalCny: Number(i.priceCny) * i.quantity,
                 url: i.url,
-                properties: (i.properties ?? []) as any,
+                properties: i.properties ?? [],
               })),
             },
             events: {
