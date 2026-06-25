@@ -12,6 +12,10 @@ import type {
   SearchResult,
 } from '../interfaces/product-provider.interface';
 
+type OtapiCategoryResponse = {
+  CategoryInfoList?: { Content?: unknown[] };
+};
+
 @Injectable()
 export class OtapiProvider implements IProductProvider {
   private readonly logger = new Logger(OtapiProvider.name);
@@ -163,10 +167,13 @@ export class OtapiProvider implements IProductProvider {
     providerAlias = 'p1',
     limit?: number,
   ): Promise<CategoryInfo[]> {
-    const data = await this.callRawWithRetry('GetProviderCategorySubcategories', {
-      providerAlias,
-      categoryId: parentId,
-    });
+    const data = await this.callRawWithRetry<OtapiCategoryResponse>(
+      'GetProviderCategorySubcategories',
+      {
+        providerAlias,
+        categoryId: parentId,
+      },
+    );
 
     const list: any[] = data?.CategoryInfoList?.Content ?? [];
     let mapped = this.mapCategoryList(list);
