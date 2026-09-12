@@ -12,6 +12,7 @@ import {
   WalletTransactionType,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { needsSourceProperties } from '../products/sku-properties.util';
 import { WalletTransactionsService } from '../wallet-transactions/wallet-transactions.service';
 import { ProductsService } from '../products/products.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -464,8 +465,7 @@ export class OrdersService {
 
     const enrichedItems = await Promise.all(
       selectedItems.map(async (item) => {
-        const props = item.properties as unknown;
-        if (Array.isArray(props) && props.length > 0) return item;
+        if (!needsSourceProperties(item.properties)) return item;
 
         const resolved = await this.productsService.resolveSkuProperties(
           item.providerAlias,

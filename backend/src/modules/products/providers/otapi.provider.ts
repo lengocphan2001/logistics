@@ -16,6 +16,7 @@ import type {
   ProductItem,
   ProductSku,
   SearchResult,
+  SkuAttribute,
 } from '../interfaces/product-provider.interface';
 
 type OtapiCategoryResponse = {
@@ -304,10 +305,12 @@ export class OtapiProvider implements IProductProvider {
   async getItemDetail(
     providerAlias: string,
     itemId: string,
+    language?: string,
   ): Promise<ProductItem> {
     const data = await this.callRaw('GetItemFullInfo', {
       providerAlias,
       itemId,
+      ...(language ? { language } : {}),
     });
     // Response field: OtapiItemFullInfo (not Result)
     const item = data?.OtapiItemFullInfo ?? data?.Result ?? data;
@@ -426,9 +429,19 @@ export class OtapiProvider implements IProductProvider {
     const configurations: any[] = raw.ConfiguredItems ?? [];
     const skus: ProductSku[] = configurations.map((cfg: any) => {
       const props: Record<string, string> = {};
+      const attributes: SkuAttribute[] = [];
       for (const conf of cfg.Configurators ?? []) {
         const attr = attrMap.get(`${conf.Pid}:${conf.Vid}`);
-        if (attr) props[attr.name] = attr.value;
+        if (!attr) continue;
+        props[attr.name] = attr.value;
+        // Keep the marketplace ids so the same SKU can be matched in another
+        // language, where the property and value text differs.
+        attributes.push({
+          pid: String(conf.Pid),
+          vid: String(conf.Vid),
+          name: attr.name,
+          value: attr.value,
+        });
       }
       return {
         id: String(cfg.Id ?? ''),
@@ -438,6 +451,7 @@ export class OtapiProvider implements IProductProvider {
         ),
         stock: Number(cfg.Quantity ?? 0),
         properties: props,
+        attributes,
       };
     });
 

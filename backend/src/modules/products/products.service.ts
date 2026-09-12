@@ -8,6 +8,7 @@ import type {
   CategoryInfo,
   ProductItem,
   SearchResult,
+  SkuPropertyPair,
 } from './interfaces/product-provider.interface';
 
 const HOT_ROOT_CATEGORY_LIMIT = 30;
@@ -15,6 +16,12 @@ const HOT_ROOT_CATEGORY_LIMIT = 30;
 const DEFAULT_CATEGORY_CACHE_TTL_SEC = 7 * 24 * 60 * 60;
 /** Stale fallback when OTAPI is down — default 30 days (seconds). */
 const DEFAULT_CATEGORY_STALE_TTL_SEC = 30 * 24 * 60 * 60;
+/**
+ * Language of the original listing. Staff buy on the marketplace itself, where
+ * the variant picker is in Chinese, so the untranslated text has to travel
+ * with the order.
+ */
+const SOURCE_LANGUAGE = 'zh-chs';
 
 @Injectable()
 export class ProductsService {
@@ -128,25 +135,92 @@ export class ProductsService {
     return this.cached(key, () => this.provider.search(p));
   }
 
-  getItemDetail(providerAlias: string, itemId: string): Promise<ProductItem> {
-    return this.cached(`item:${providerAlias}:${itemId}`, () =>
-      this.provider.getItemDetail(providerAlias, itemId),
+  getItemDetail(
+    providerAlias: string,
+    itemId: string,
+    language?: string,
+  ): Promise<ProductItem> {
+    const suffix = language ? `:${language}` : '';
+    return this.cached(`item:${providerAlias}:${itemId}${suffix}`, () =>
+      this.provider.getItemDetail(providerAlias, itemId, language),
     );
   }
 
-  /** Lấy thuộc tính SKU từ OTAPI (dùng khi giỏ hàng thiếu properties) */
+  /**
+   * Resolve the properties of one SKU, in Vietnamese for the customer and in
+   * the marketplace's own language for the staff member who has to find the
+   * same variant on the shop page.
+   *
+   * The two languages are joined on the marketplace property and value ids, so
+   * a translated label never has to be matched by text.
+   */
   async resolveSkuProperties(
     providerAlias: string,
     itemId: string,
     skuId?: string | null,
-  ): Promise<{ name: string; value: string }[]> {
+  ): Promise<SkuPropertyPair[]> {
     if (!skuId) return [];
+
     const detail = await this.getItemDetail(providerAlias, itemId);
     const sku = detail.skus.find((s) => s.id === skuId);
-    if (!sku?.properties) return [];
-    return Object.entries(sku.properties).map(([name, value]) => ({
+    if (!sku) return [];
+
+    const original = await this.sourceLanguageAttributes(
+      providerAlias,
+      itemId,
+      skuId,
+    );
+
+    if (sku.attributes?.length) {
+      return sku.attributes.map((attr) => {
+        const source = original.get(`${attr.pid}:${attr.vid}`);
+        return {
+          name: attr.name,
+          value: attr.value,
+          nameOriginal: source?.name,
+          valueOriginal: source?.value,
+        };
+      });
+    }
+
+    // Older cache entries have no attribute ids; fall back to display text.
+    return Object.entries(sku.properties ?? {}).map(([name, value]) => ({
       name,
       value,
     }));
+  }
+
+  /**
+   * The same SKU read in the source language, keyed by `pid:vid`. Returns an
+   * empty map when the provider cannot serve that language, so a failure here
+   * degrades the label rather than the order.
+   */
+  private async sourceLanguageAttributes(
+    providerAlias: string,
+    itemId: string,
+    skuId: string,
+  ): Promise<Map<string, { name: string; value: string }>> {
+    const map = new Map<string, { name: string; value: string }>();
+    try {
+      const detail = await this.getItemDetail(
+        providerAlias,
+        itemId,
+        SOURCE_LANGUAGE,
+      );
+      const sku = detail.skus.find((s) => s.id === skuId);
+      for (const attr of sku?.attributes ?? []) {
+        map.set(`${attr.pid}:${attr.vid}`, {
+          name: attr.name,
+          value: attr.value,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Không lấy được thuộc tính gốc (${SOURCE_LANGUAGE}) cho ${itemId}: ${
+          (err as Error)?.message
+        }`,
+      );
+    }
+    return map;
   }
 }

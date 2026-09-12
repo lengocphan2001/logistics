@@ -18,7 +18,10 @@ type JwtPayload = {
   accountType?: 'user' | 'customer';
 };
 
-export type SerializedNotification = Omit<Notification, 'createdAt' | 'readAt'> & {
+export type SerializedNotification = Omit<
+  Notification,
+  'createdAt' | 'readAt'
+> & {
   createdAt: string;
   readAt: string | null;
 };
@@ -57,7 +60,10 @@ export class NotificationsGateway
     return null;
   }
 
-  private roomFor(recipientType: NotificationRecipientType, recipientId: string) {
+  private roomFor(
+    recipientType: NotificationRecipientType,
+    recipientId: string,
+  ) {
     return recipientType === NotificationRecipientType.CUSTOMER
       ? `customer:${recipientId}`
       : `user:${recipientId}`;

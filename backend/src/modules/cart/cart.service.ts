@@ -7,8 +7,10 @@ import { PrismaService } from '../../database/prisma.service';
 import { ProductsService } from '../products/products.service';
 import { UpsertCartItemDto } from './dto/upsert-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { needsSourceProperties } from '../products/sku-properties.util';
+import type { SkuPropertyPair } from '../products/interfaces/product-provider.interface';
 
-type CartItemProperty = { name: string; value: string };
+type CartItemProperty = SkuPropertyPair;
 
 function serializeCartItem<
   T extends { priceCny: { toString(): string } | number; properties?: unknown },
@@ -37,10 +39,6 @@ function serializeCartItem<
   };
 }
 
-function hasProperties(props: unknown): boolean {
-  return Array.isArray(props) && props.length > 0;
-}
-
 @Injectable()
 export class CartService {
   constructor(
@@ -63,7 +61,7 @@ export class CartService {
     skuId?: string | null;
     properties?: unknown;
   }) {
-    if (hasProperties(item.properties)) {
+    if (!needsSourceProperties(item.properties)) {
       return serializeCartItem(item as any);
     }
 
