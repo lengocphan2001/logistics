@@ -1,8 +1,19 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState } from '@/components/ui/loading-state';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatCny, formatVnd } from '@/lib/currency';
+import { formatDateTime } from '@/lib/date';
 import type { WalletTransaction } from '@/services/wallet-transactions.service';
 import {
   walletTransactionTypeLabels,
@@ -23,41 +34,53 @@ function WalletTransactionCard({ tx }: { tx: WalletTransaction }) {
   const credit = isWalletCredit(tx.type);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--portal-border)] bg-white p-4 shadow-sm">
+    <div className="border border-[var(--rule)] bg-[var(--sheet-white)] p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="break-all font-mono text-sm font-semibold leading-snug">{tx.code}</p>
-          <p className="mt-0.5 text-xs text-[var(--portal-muted)]">
-            {new Date(tx.createdAt).toLocaleString('vi-VN')}
+          <p className="mt-0.5 text-xs text-[var(--graphite)]">
+            {formatDateTime(tx.createdAt)}
           </p>
         </div>
         <Badge
           variant="outline"
-          className={cn('ml-auto shrink-0 font-normal', walletTransactionStatusBadgeColors[tx.status])}
+          className={cn(
+            'ml-auto shrink-0 font-normal',
+            walletTransactionStatusBadgeColors[tx.status],
+          )}
         >
           {walletTransactionStatusLabels[tx.status]}
         </Badge>
       </div>
+
       <div className="mt-3 flex items-center justify-between gap-3">
-        <Badge variant="outline" className={cn('shrink-0', walletTransactionTypeBadgeColors[tx.type])}>
+        <Badge
+          variant="outline"
+          className={cn('shrink-0', walletTransactionTypeBadgeColors[tx.type])}
+        >
           {walletTransactionTypeLabels[tx.type]}
         </Badge>
         <span
+          data-numeric
           className={cn(
-            'shrink-0 text-base font-bold tabular-nums',
-            credit ? 'text-emerald-700' : 'text-orange-700',
+            'shrink-0 text-base font-bold',
+            credit ? 'text-[var(--ledger-green)]' : 'text-[var(--ink)]',
           )}
         >
           {credit ? '+' : '-'}
           {formatCny(tx.amount)}
         </span>
       </div>
-      {(tx.vndAmount != null || tx.balanceAfter != null || tx.referenceCode || tx.rejectReason) && (
-        <div className="mt-2 space-y-1 text-xs text-[var(--portal-muted)]">
+
+      {(tx.vndAmount != null ||
+        tx.balanceAfter != null ||
+        tx.referenceCode ||
+        tx.rejectReason) && (
+        <div className="mt-2 space-y-1 text-xs text-[var(--graphite)]">
           {tx.vndAmount != null && <p>≈ {formatVnd(tx.vndAmount)}</p>}
           {tx.balanceAfter != null && <p>Số dư sau: {formatCny(tx.balanceAfter)}</p>}
           {tx.referenceCode && <p>CK: {tx.referenceCode}</p>}
-          {tx.rejectReason && <p className="text-destructive">{tx.rejectReason}</p>}
+          {tx.rejectReason && <p className="text-[var(--seal-red)]">{tx.rejectReason}</p>}
         </div>
       )}
     </div>
@@ -70,19 +93,11 @@ export function WalletTransactionTable({
   emptyMessage = 'Chưa có giao dịch nào.',
 }: WalletTransactionTableProps) {
   if (loading) {
-    return (
-      <div className="flex h-40 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingState className="py-14" />;
   }
 
   if (transactions.length === 0) {
-    return (
-      <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </div>
-    );
+    return <EmptyState icon={Wallet} title={emptyMessage} className="border-0 py-14" />;
   }
 
   return (
@@ -94,63 +109,77 @@ export function WalletTransactionTable({
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-foreground/65">
-              <th className="px-4 py-3">Mã GD</th>
-              <th className="px-4 py-3">Loại</th>
-              <th className="px-4 py-3">Số tiền</th>
-              <th className="px-4 py-3">Số dư sau</th>
-              <th className="px-4 py-3">Trạng thái</th>
-              <th className="px-4 py-3">Thời gian</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border text-sm">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Mã giao dịch</TableHead>
+              <TableHead>Loại</TableHead>
+              <TableHead>Số tiền</TableHead>
+              <TableHead>Số dư sau</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead>Thời gian</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {transactions.map((tx) => {
               const credit = isWalletCredit(tx.type);
               return (
-                <tr key={tx.id} className="transition-colors hover:bg-muted/10">
-                  <td className="px-4 py-3">
+                <TableRow key={tx.id}>
+                  <TableCell className="align-top">
                     <p className="font-mono text-xs font-semibold">{tx.code}</p>
                     {tx.referenceCode && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">CK: {tx.referenceCode}</p>
+                      <p className="mt-0.5 text-xs text-[var(--graphite)]">
+                        CK: {tx.referenceCode}
+                      </p>
                     )}
                     {tx.rejectReason && (
-                      <p className="mt-0.5 text-xs text-destructive">{tx.rejectReason}</p>
+                      <p className="mt-0.5 text-xs text-[var(--seal-red)]">{tx.rejectReason}</p>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className={walletTransactionTypeBadgeColors[tx.type]}>
+                  </TableCell>
+                  <TableCell className="align-top">
+                    <Badge
+                      variant="outline"
+                      className={walletTransactionTypeBadgeColors[tx.type]}
+                    >
                       {walletTransactionTypeLabels[tx.type]}
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="align-top">
                     <span
-                      className={`font-semibold ${credit ? 'text-emerald-700 dark:text-emerald-400' : 'text-orange-700 dark:text-orange-400'}`}
+                      data-numeric
+                      className={cn(
+                        'font-semibold',
+                        credit ? 'text-[var(--ledger-green)]' : 'text-[var(--ink)]',
+                      )}
                     >
                       {credit ? '+' : '-'}
                       {formatCny(tx.amount)}
                     </span>
                     {tx.vndAmount != null && (
-                      <p className="text-xs text-muted-foreground">{formatVnd(tx.vndAmount)}</p>
+                      <p data-numeric className="text-xs text-[var(--graphite)]">
+                        {formatVnd(tx.vndAmount)}
+                      </p>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  </TableCell>
+                  <TableCell data-numeric className="align-top text-[var(--graphite)]">
                     {tx.balanceAfter != null ? formatCny(tx.balanceAfter) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className={walletTransactionStatusBadgeColors[tx.status]}>
+                  </TableCell>
+                  <TableCell className="align-top">
+                    <Badge
+                      variant="outline"
+                      className={walletTransactionStatusBadgeColors[tx.status]}
+                    >
                       {walletTransactionStatusLabels[tx.status]}
                     </Badge>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
-                    {new Date(tx.createdAt).toLocaleString('vi-VN')}
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="align-top text-xs text-[var(--graphite)]">
+                    {formatDateTime(tx.createdAt)}
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </>
   );

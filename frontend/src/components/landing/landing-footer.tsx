@@ -1,44 +1,42 @@
 import Link from 'next/link';
-import { Mail, MapPin, Package, Phone } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
+import { icon } from '@/lib/icon';
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-[var(--brand-border)] bg-[oklch(0.96_0.022_86)]">
+    <footer className="border-t border-[var(--rule)] bg-[var(--dock-grey)]">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4 lg:col-span-2">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/25">
-                <Package className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-foreground">Taman Logistics</span>
-            </div>
-            <p className="max-w-md text-sm leading-relaxed text-[var(--landing-subtle)]">
-              Nền tảng logistics Trung Quốc — Việt Nam: ký gửi, mua hộ, thanh toán hộ và theo dõi đơn
-              hàng realtime trên một hệ thống.
+            <span className="font-heading text-base font-bold text-[var(--ink)]">
+              Taman Logistics
+            </span>
+            <p data-prose className="text-sm">
+              Nền tảng logistics giữa Trung Quốc và Việt Nam. Ký gửi, mua hộ, thanh
+              toán hộ và theo dõi đơn hàng trên một hệ thống.
             </p>
           </div>
 
           <div>
-            <p className="mb-4 text-sm font-semibold text-foreground">Liên kết</p>
+            <h2 className="mb-4 font-heading text-sm font-semibold text-[var(--ink)]">Liên kết</h2>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/login" className="text-[var(--landing-subtle)] hover:text-primary transition-colors">
+                <Link href="/login" className="text-[var(--graphite)] hover:text-[var(--manifest-navy)] hover:underline">
                   Đăng nhập
                 </Link>
               </li>
               <li>
-                <Link href="/register" className="text-[var(--landing-subtle)] hover:text-primary transition-colors">
+                <Link href="/register" className="text-[var(--graphite)] hover:text-[var(--manifest-navy)] hover:underline">
                   Đăng ký
                 </Link>
               </li>
               <li>
-                <a href="#dich-vu" className="text-[var(--landing-subtle)] hover:text-primary transition-colors">
+                <a href="#dich-vu" className="text-[var(--graphite)] hover:text-[var(--manifest-navy)] hover:underline">
                   Dịch vụ
                 </a>
               </li>
               <li>
-                <a href="#tra-cuu" className="text-[var(--landing-subtle)] hover:text-primary transition-colors">
+                <a href="#tra-cuu" className="text-[var(--graphite)] hover:text-[var(--manifest-navy)] hover:underline">
                   Tra cứu vận đơn
                 </a>
               </li>
@@ -46,29 +44,29 @@ export function LandingFooter() {
           </div>
 
           <div>
-            <p className="mb-4 text-sm font-semibold text-foreground">Liên hệ</p>
-            <ul className="space-y-3 text-sm text-[var(--landing-subtle)]">
+            <h2 className="mb-4 font-heading text-sm font-semibold text-[var(--ink)]">Liên hệ</h2>
+            <ul className="space-y-3 text-sm text-[var(--graphite)]">
               <li className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <MapPin {...icon('inline')} aria-hidden className="mt-0.5 shrink-0" />
                 <span>Hà Nội & TP. Hồ Chí Minh, Việt Nam</span>
               </li>
               <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4 shrink-0 text-primary" />
-                <a href="mailto:support@tamanlogistics.vn" className="hover:text-primary transition-colors">
+                <Mail {...icon('inline')} aria-hidden className="shrink-0" />
+                <a href="mailto:support@tamanlogistics.vn" className="hover:text-[var(--manifest-navy)] hover:underline">
                   support@tamanlogistics.vn
                 </a>
               </li>
               <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 shrink-0 text-primary" />
+                <Phone {...icon('inline')} aria-hidden className="shrink-0" />
                 <span>1900 xxxx</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-2 border-t border-border/70 pt-8 text-xs text-[var(--landing-subtle)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-2 border-t border-[var(--rule)] pt-8 text-xs text-[var(--graphite)] sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Taman Logistics. All rights reserved.</p>
-          <p className="font-medium text-foreground/70">tamanlogistics.vn</p>
+          <p className="font-medium text-[var(--ink)]">tamanlogistics.vn</p>
         </div>
       </div>
     </footer>

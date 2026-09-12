@@ -21,12 +21,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '@/lib/api-error';
 import { ordersService, type Order } from '@/services/orders.service';
 import { walletTransactionsService, type WalletTransaction } from '@/services/wallet-transactions.service';
 import { orderStatusLabels } from '@/lib/order-status';
 import { orderTypeLabels, orderTypeBadgeColors } from '@/lib/order-type';
 import { formatCny } from '@/lib/currency';
 import { WalletTransactionTable } from '@/components/wallet/wallet-transaction-table';
+import { SourcePropertyCopy } from '@/components/orders/SourcePropertyCopy';
 
 const formatCurrency = (value: number | string) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value));
@@ -85,8 +87,8 @@ export default function OrderDetailPage() {
       }
       setWalletAmount('');
       await Promise.all([loadOrder(), loadTransactions()]);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Thao tác trên ví thất bại'));
     } finally {
       setSubmitting(false);
     }
@@ -101,7 +103,7 @@ export default function OrderDetailPage() {
   }
 
   if (!order) {
-    return <div className="p-6 text-muted-foreground">Không tìm thấy đơn hàng.</div>;
+    return <div className="p-6 text-[var(--graphite)]">Không tìm thấy đơn hàng.</div>;
   }
 
   return (
@@ -113,10 +115,10 @@ export default function OrderDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Quay lại danh sách
       </Link>
 
-      <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+      <div className="bg-card rounded-[var(--radius-panel)] border border-border p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <p className="text-sm text-[var(--graphite)] flex items-center gap-1">
               <Barcode className="w-4 h-4" /> Mã vận đơn
             </p>
             <h1 className="text-2xl font-bold font-mono">{order.billOfLadingCode}</h1>
@@ -133,7 +135,7 @@ export default function OrderDetailPage() {
               <User className="w-4 h-4" /> Người gửi
             </h3>
             <p>{order.senderName}</p>
-            <p className="text-sm text-muted-foreground">{order.senderPhone}</p>
+            <p className="text-sm text-[var(--graphite)]">{order.senderPhone}</p>
             <p className="text-sm flex items-start gap-1">
               <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {order.senderAddress}
             </p>
@@ -143,7 +145,7 @@ export default function OrderDetailPage() {
               <User className="w-4 h-4" /> Người nhận
             </h3>
             <p>{order.receiverName}</p>
-            <p className="text-sm text-muted-foreground">{order.receiverPhone}</p>
+            <p className="text-sm text-[var(--graphite)]">{order.receiverPhone}</p>
             <p className="text-sm flex items-start gap-1">
               <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {order.receiverAddress}
             </p>
@@ -152,26 +154,26 @@ export default function OrderDetailPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
           <div>
-            <p className="text-xs text-muted-foreground">Phí vận chuyển</p>
+            <p className="text-xs text-[var(--graphite)]">Phí vận chuyển</p>
             <p className="font-semibold">{formatCurrency(order.feeTransfer)}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Tổng phí</p>
+            <p className="text-xs text-[var(--graphite)]">Tổng phí</p>
             <p className="font-semibold text-primary">{formatCurrency(order.totalFee)}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Đã đặt cọc (¥)</p>
+            <p className="text-xs text-[var(--graphite)]">Đã đặt cọc (¥)</p>
             <p className="font-semibold">{formatCny((order as any).depositAmount ?? 0)}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Đã TT từ ví (¥)</p>
+            <p className="text-xs text-[var(--graphite)]">Đã TT từ ví (¥)</p>
             <p className="font-semibold">{formatCny((order as any).walletPaidAmount ?? 0)}</p>
           </div>
         </div>
 
         {order.customer && (
           <div className="pt-4 border-t">
-            <p className="text-sm text-muted-foreground">Khách hàng</p>
+            <p className="text-sm text-[var(--graphite)]">Khách hàng</p>
             <Link
               href={`/customers/${order.customer.id}`}
               className="font-medium text-primary hover:underline"
@@ -183,7 +185,7 @@ export default function OrderDetailPage() {
 
         {order.description && (
           <div className="pt-4 border-t">
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <p className="text-sm text-[var(--graphite)] flex items-center gap-1">
               <Package className="w-4 h-4" /> Mô tả hàng hoá
             </p>
             <p>{order.description}</p>
@@ -196,7 +198,7 @@ export default function OrderDetailPage() {
             <p className="font-semibold flex items-center gap-2 mb-3">
               <ShoppingCart className="w-4 h-4 text-primary" /> Sản phẩm đặt mua
               {order.shopName && (
-                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                <span className="ml-1 text-sm font-normal text-[var(--graphite)]">
                   — {order.shopName}
                   {order.shopUrl && (
                     <a href={order.shopUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline inline-flex items-center gap-0.5">
@@ -206,14 +208,14 @@ export default function OrderDetailPage() {
                 </span>
               )}
             </p>
-            <div className="rounded-xl border border-border overflow-hidden">
+            <div className="rounded-[var(--radius-panel)] border border-border overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">Sản phẩm</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-20">Đơn giá</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-16">SL</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-24">Thành tiền</th>
+                    <th className="px-3 py-2 text-left font-medium text-[var(--graphite)]">Sản phẩm</th>
+                    <th className="px-3 py-2 text-right font-medium text-[var(--graphite)] w-20">Đơn giá</th>
+                    <th className="px-3 py-2 text-right font-medium text-[var(--graphite)] w-16">SL</th>
+                    <th className="px-3 py-2 text-right font-medium text-[var(--graphite)] w-24">Thành tiền</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -232,9 +234,12 @@ export default function OrderDetailPage() {
                           <div className="min-w-0">
                             <p className="line-clamp-2 text-sm">{item.title}</p>
                             {item.properties && item.properties.length > 0 && (
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {item.properties.map((p) => `${p.name}: ${p.value}`).join(', ')}
-                              </p>
+                              <>
+                                <p className="mt-0.5 text-xs text-[var(--graphite)]">
+                                  {item.properties.map((p) => `${p.name}: ${p.value}`).join(', ')}
+                                </p>
+                                <SourcePropertyCopy properties={item.properties} />
+                              </>
                             )}
                             {item.url && (
                               <a
@@ -270,11 +275,11 @@ export default function OrderDetailPage() {
       </div>
 
       {order.customer && (
-        <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+        <div className="bg-card rounded-[var(--radius-panel)] border border-border p-6 space-y-4">
           <h3 className="font-semibold flex items-center gap-2">
             <Wallet className="w-5 h-5 text-primary" /> Thanh toán từ ví khách hàng
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[var(--graphite)]">
             Trừ số dư ¥ của khách để đặt cọc hoặc thanh toán đơn. Mỗi thao tác được ghi vào lịch sử giao dịch.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 items-end">
@@ -310,7 +315,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-card rounded-[var(--radius-panel)] border border-border overflow-hidden">
         <div className="px-6 py-4 border-b font-semibold flex items-center gap-2">
           <History className="w-4 h-4 text-primary" /> Lịch sử giao dịch đơn hàng
         </div>

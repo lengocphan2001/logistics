@@ -49,7 +49,7 @@ export function WalletTransactionTable({
 
   if (transactions.length === 0) {
     return (
-      <div className="flex justify-center items-center h-40 text-muted-foreground text-sm">
+      <div className="flex justify-center items-center h-40 text-[var(--graphite)] text-sm">
         {emptyMessage}
       </div>
     );
@@ -59,7 +59,7 @@ export function WalletTransactionTable({
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse">
         <thead>
-          <tr className="bg-muted/40 border-b border-border text-foreground/65 text-xs font-semibold uppercase tracking-wider">
+          <tr className="bg-muted/40 border-b border-border text-foreground/65 text-xs font-semibold">
             <th className="px-4 py-3">Mã GD</th>
             {showCustomer && <th className="px-4 py-3">Khách hàng</th>}
             <th className="px-4 py-3">Loại</th>
@@ -79,7 +79,7 @@ export function WalletTransactionTable({
                 <td className="px-4 py-3">
                   <p className="font-mono font-semibold text-xs">{tx.code}</p>
                   {tx.referenceCode && (
-                    <p className="text-xs text-muted-foreground">CK: {tx.referenceCode}</p>
+                    <p className="text-xs text-[var(--graphite)]">CK: {tx.referenceCode}</p>
                   )}
                 </td>
                 {showCustomer && (
@@ -92,7 +92,7 @@ export function WalletTransactionTable({
                         >
                           {tx.customer.fullName}
                         </Link>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <p className="text-xs text-[var(--graphite)] flex items-center gap-1">
                           <AtSign className="w-3 h-3" /> {tx.customer.username}
                         </p>
                       </div>
@@ -109,17 +109,17 @@ export function WalletTransactionTable({
                 <td className="px-4 py-3">
                   <p
                     className={`font-semibold ${
-                      credit ? 'text-emerald-700 dark:text-emerald-400' : 'text-orange-700 dark:text-orange-400'
+                      credit ? 'text-[var(--ledger-green)]' : 'text-[var(--ink)]'
                     }`}
                   >
                     {credit ? '+' : '−'}
                     {formatCny(tx.amount)}
                   </p>
                   {tx.vndAmount != null && Number(tx.vndAmount) > 0 && (
-                    <p className="text-xs text-muted-foreground">≈ {formatVnd(tx.vndAmount)}</p>
+                    <p className="text-xs text-[var(--graphite)]">≈ {formatVnd(tx.vndAmount)}</p>
                   )}
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
+                <td className="px-4 py-3 text-xs text-[var(--graphite)]">
                   {tx.balanceBefore != null && tx.balanceAfter != null ? (
                     <>
                       <p>{formatCny(tx.balanceBefore)}</p>
@@ -138,16 +138,16 @@ export function WalletTransactionTable({
                       {tx.order.billOfLadingCode}
                     </Link>
                   ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-[var(--graphite)]">—</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
                   <Badge variant="outline" className={walletTransactionStatusBadgeColors[tx.status]}>
                     {walletTransactionStatusLabels[tx.status]}
                   </Badge>
-                  {tx.note && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{tx.note}</p>}
+                  {tx.note && <p className="text-xs text-[var(--graphite)] mt-1 line-clamp-1">{tx.note}</p>}
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
+                <td className="px-4 py-3 text-xs text-[var(--graphite)]">
                   {new Date(tx.createdAt).toLocaleString('vi-VN')}
                 </td>
                 {showActions && (

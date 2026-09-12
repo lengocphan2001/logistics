@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { History, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '@/lib/api-error';
 import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WalletTransactionTable } from '@/components/wallet/wallet-transaction-table';
@@ -30,8 +30,8 @@ export default function WalletTransactionsPage() {
         status: statusFilter !== 'ALL' ? statusFilter : undefined,
       });
       setTransactions(res.data.data ?? res.data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Không thể tải lịch sử');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Không thể tải lịch sử'));
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,6 @@ export default function WalletTransactionsPage() {
         eyebrow="Ví"
         title="Lịch sử giao dịch"
         description="Toàn bộ giao dịch ví: nạp, rút, đặt cọc và thanh toán đơn hàng."
-        icon={<History className="h-6 w-6 text-[var(--brand-accent)]" />}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -79,7 +78,7 @@ export default function WalletTransactionsPage() {
         </Select>
       </div>
 
-      <div className="rounded-2xl border border-[var(--portal-border)] bg-white shadow-sm md:overflow-hidden">
+      <div className="rounded-[var(--radius-panel)] border border-[var(--rule)] bg-[var(--sheet-white)]  md:overflow-hidden">
         <WalletTransactionTable transactions={transactions} loading={loading} />
       </div>
     </div>

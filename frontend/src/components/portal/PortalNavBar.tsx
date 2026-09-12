@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { portalConfig, type PortalNavItem } from '@/config/portal.config';
 import { portalNavIcons } from '@/components/portal/icon-map';
+import { icon } from '@/lib/icon';
 import { useCartStore } from '@/stores/cart.store';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -68,14 +69,28 @@ function isNavActive(
   return true;
 }
 
+/** Beats once when the cart total grows — the other half of the add-to-cart confirmation. */
+function useTally(count: number) {
+  const previous = useRef(count);
+  const [beat, setBeat] = useState(0);
+
+  useEffect(() => {
+    if (count > previous.current) setBeat((n) => n + 1);
+    previous.current = count;
+  }, [count]);
+
+  return beat;
+}
+
 export function PortalNavBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const navItems = portalConfig.nav;
 
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { fetchCart, itemCount } = useCartStore();
+  const { fetchCart } = useCartStore();
   const cartCount = useCartStore((s) => s.itemCount());
+  const beat = useTally(cartCount);
 
   // Load cart count once authenticated
   useEffect(() => {
@@ -83,38 +98,47 @@ export function PortalNavBar() {
   }, [isAuthenticated, fetchCart]);
 
   return (
-    <nav className="portal-nav-bar border-b border-[var(--brand-primary-dark)]/20 shadow-sm">
+    <nav
+      data-chrome
+      aria-label="Điều hướng chính"
+      className="portal-nav-bar border-b border-[var(--navy-deep)]"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex gap-0.5 overflow-x-auto py-1 scrollbar-none sm:gap-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <ul className="flex gap-1 overflow-x-auto scroll-x-clean">
           {navItems.map((item) => {
             const active = isNavActive(pathname, searchParams, item, navItems);
             const Icon = portalNavIcons[item.icon];
             const isCart = item.href === '/cart';
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={item.label}
-                className={cn(
-                  'relative inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors sm:gap-2 sm:px-3.5 sm:py-2.5 sm:text-sm',
-                  active
-                    ? 'bg-white/20 text-[var(--brand-hero-text)] shadow-sm'
-                    : 'text-[var(--brand-hero-text)]/85 hover:bg-white/10 hover:text-[var(--brand-hero-text)]',
-                )}
-              >
-                <span className="relative">
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {isCart && cartCount > 0 && (
-                    <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                      {cartCount > 99 ? '99+' : cartCount}
-                    </span>
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  title={item.label}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'relative inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium sm:px-4',
+                    active
+                      ? 'border-white text-white'
+                      : 'border-transparent text-white/70 hover:text-white',
                   )}
-                </span>
-                <span className="hidden min-[480px]:inline">{item.label}</span>
-              </Link>
+                >
+                  <span className="relative">
+                    <Icon {...icon('control')} aria-hidden />
+                    {isCart && cartCount > 0 && (
+                      <span
+                        key={beat}
+                        className="dock-tally absolute -right-2.5 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--seal-red)] px-1 text-[10px] font-bold text-white"
+                      >
+                        <span data-numeric>{cartCount > 99 ? '99+' : cartCount}</span>
+                      </span>
+                    )}
+                  </span>
+                  <span className="hidden min-[480px]:inline">{item.label}</span>
+                </Link>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </div>
     </nav>
   );

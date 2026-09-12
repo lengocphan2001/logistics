@@ -2,20 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
-  ShoppingCart,
-  Users,
-  Settings,
   PanelLeftClose,
   PanelLeftOpen,
-  Zap,
-  Warehouse,
+  Settings,
+  ShoppingCart,
   UserCog,
+  Users,
   Wallet,
+  Warehouse,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { icon } from '@/lib/icon';
 import { useUIStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
 import {
@@ -34,9 +33,7 @@ const navItems = [
   { title: 'Nhân viên', href: '/staff', icon: UserCog, roles: ['ADMIN'] },
 ];
 
-const bottomItems = [
-  { title: 'Cài đặt', href: '/settings', icon: Settings },
-];
+const bottomItems = [{ title: 'Cài đặt', href: '/settings', icon: Settings }];
 
 interface NavLinkProps {
   href: string;
@@ -46,58 +43,38 @@ interface NavLinkProps {
   collapsed: boolean;
 }
 
+/** Active state is a left marker plus full-strength text, not a pill. */
 function NavLink({ href, title, icon: Icon, isActive, collapsed }: NavLinkProps) {
-  const inner = (
+  const link = (
     <Link
       href={href}
+      aria-current={isActive ? 'page' : undefined}
+      title={collapsed ? title : undefined}
       className={cn(
-        'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group w-full',
+        'relative flex w-full items-center gap-3 py-2.5 pl-4 pr-3 text-sm',
         isActive
-          ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
-          : 'text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
+          ? 'bg-[var(--sidebar-accent)] font-semibold text-white'
+          : 'text-white/70 hover:bg-white/5 hover:text-white',
       )}
     >
-      <Icon
-        className={cn(
-          'w-[18px] h-[18px] shrink-0 transition-colors',
-          isActive
-            ? 'text-sidebar-primary'
-            : 'text-sidebar-foreground/70 group-hover:text-sidebar-foreground'
-        )}
-      />
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -6 }}
-            transition={{ duration: 0.15 }}
-            className="whitespace-nowrap overflow-hidden"
-          >
-            {title}
-          </motion.span>
-        )}
-      </AnimatePresence>
-
       {isActive && (
-        <motion.div
-          layoutId="active-nav"
-          className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-sidebar-primary rounded-l-full"
-        />
+        <span aria-hidden className="absolute left-0 top-0 h-full w-[3px] bg-white" />
       )}
+      <Icon {...icon('control')} aria-hidden className="shrink-0" />
+      {!collapsed && <span className="truncate">{title}</span>}
     </Link>
   );
 
   if (collapsed) {
     return (
       <Tooltip>
-        <TooltipTrigger render={inner} />
+        <TooltipTrigger render={link} />
         <TooltipContent side="right">{title}</TooltipContent>
       </Tooltip>
     );
   }
 
-  return inner;
+  return link;
 }
 
 export function Sidebar() {
@@ -107,65 +84,46 @@ export function Sidebar() {
   const userRole = user?.role?.toUpperCase() || '';
 
   const filteredNavItems = navItems.filter(
-    (item) => !item.roles || item.roles.includes(userRole)
+    (item) => !item.roles || item.roles.includes(userRole),
   );
 
   return (
     <TooltipProvider delay={0}>
-      <motion.aside
-        animate={{ width: sidebarCollapsed ? 68 : 240 }}
-        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-        className="flex flex-col h-screen bg-sidebar border-r border-sidebar-border shadow-sm shrink-0 overflow-hidden z-30"
+      <aside
+        data-chrome
+        className={cn(
+          'sidebar-transition z-30 flex h-screen shrink-0 flex-col overflow-hidden border-r border-[var(--sidebar-border)] bg-[var(--sidebar)]',
+          sidebarCollapsed ? 'w-[68px]' : 'w-60',
+        )}
       >
-        {/* ── Logo + Toggle ── */}
-        <div className="flex items-center h-16 px-3 border-b border-sidebar-border shrink-0">
-          {/* Logo mark — always visible */}
-          <Link
-            href="/dashboard"
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary shrink-0"
-          >
-            <Zap className="w-4 h-4 text-primary-foreground" />
-          </Link>
+        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--sidebar-border)] px-3">
+          {!sidebarCollapsed && (
+            <Link href="/dashboard" className="min-w-0 flex-1">
+              <p className="truncate font-heading text-sm font-bold tracking-[-0.02em] text-white">
+                Logistics
+              </p>
+              <p className="truncate text-[11px] text-white/60">Bảng điều khiển</p>
+            </Link>
+          )}
 
-          {/* Brand name — hide when collapsed */}
-          <AnimatePresence>
-            {!sidebarCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.18 }}
-                className="ml-3 overflow-hidden flex-1 min-w-0"
-              >
-                <p className="text-sidebar-foreground font-semibold text-sm leading-tight whitespace-nowrap tracking-tight">
-                  Logistics
-                </p>
-                <p className="text-sidebar-foreground/65 text-[11px] whitespace-nowrap">
-                  Admin Panel
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Toggle — always at the right of the header row */}
           <Tooltip>
             <TooltipTrigger
               render={
                 <button
                   onClick={toggleSidebarCollapsed}
                   className={cn(
-                    'flex items-center justify-center w-8 h-8 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 transition-all duration-150 shrink-0',
-                    sidebarCollapsed ? 'mx-auto' : 'ml-auto'
+                    'flex size-9 items-center justify-center rounded-[var(--radius-control)] text-white/70 hover:bg-white/10 hover:text-white',
+                    sidebarCollapsed && 'mx-auto',
                   )}
-                  aria-label={sidebarCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
+                  aria-label={sidebarCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
                   id="sidebar-toggle"
                 />
               }
             >
               {sidebarCollapsed ? (
-                <PanelLeftOpen className="w-4 h-4" />
+                <PanelLeftOpen {...icon('control')} aria-hidden />
               ) : (
-                <PanelLeftClose className="w-4 h-4" />
+                <PanelLeftClose {...icon('control')} aria-hidden />
               )}
             </TooltipTrigger>
             <TooltipContent side="right">
@@ -174,43 +132,35 @@ export function Sidebar() {
           </Tooltip>
         </div>
 
-        {/* ── Nav ── */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
-          {filteredNavItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== '/dashboard' && pathname.startsWith(item.href));
-
-            return (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                title={item.title}
-                icon={item.icon}
-                isActive={isActive}
-                collapsed={sidebarCollapsed}
-              />
-            );
-          })}
+        <nav aria-label="Điều hướng chính" className="flex-1 overflow-y-auto overflow-x-hidden py-2">
+          {filteredNavItems.map((item) => (
+            <NavLink
+              key={item.href}
+              href={item.href}
+              title={item.title}
+              icon={item.icon}
+              isActive={
+                pathname === item.href ||
+                (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              }
+              collapsed={sidebarCollapsed}
+            />
+          ))}
         </nav>
 
-        {/* ── Bottom ── */}
-        <div className="py-3 px-2 border-t border-sidebar-border space-y-0.5">
-          {bottomItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                title={item.title}
-                icon={item.icon}
-                isActive={isActive}
-                collapsed={sidebarCollapsed}
-              />
-            );
-          })}
+        <div className="border-t border-[var(--sidebar-border)] py-2">
+          {bottomItems.map((item) => (
+            <NavLink
+              key={item.href}
+              href={item.href}
+              title={item.title}
+              icon={item.icon}
+              isActive={pathname === item.href}
+              collapsed={sidebarCollapsed}
+            />
+          ))}
         </div>
-      </motion.aside>
+      </aside>
     </TooltipProvider>
   );
 }

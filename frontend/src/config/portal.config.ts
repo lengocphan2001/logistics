@@ -1,5 +1,5 @@
 import type { OrderType } from '@/lib/order-type';
-import type { LucideIcon } from 'lucide-react';
+
 
 export type PortalNavIcon =
   | 'LayoutDashboard'
@@ -52,7 +52,7 @@ export interface PortalOrderTableConfig {
 export const portalConfig = {
   brand: {
     name: 'Taman Logistics',
-    tagline: 'Trung Quốc → Việt Nam',
+    tagline: 'Trung Quốc và Việt Nam',
     homeHref: '/dashboard',
   },
 
@@ -82,32 +82,32 @@ export const portalConfig = {
         label: 'Mua hộ',
         description: 'Đơn mua hộ',
         icon: 'ShoppingBag',
-        accent: 'border-amber-400/30 bg-gradient-to-br from-amber-50 to-amber-100/50',
-        iconClass: 'bg-amber-500/15 text-amber-700',
+        accent: '',
+        iconClass: '',
       },
       {
         type: 'PROXY_ORDER',
         label: 'Đặt hàng hộ',
         description: 'Đơn đặt hàng',
         icon: 'Package',
-        accent: 'border-yellow-500/25 bg-gradient-to-br from-yellow-50 to-yellow-100/40',
-        iconClass: 'bg-yellow-600/12 text-yellow-800',
+        accent: '',
+        iconClass: '',
       },
       {
         type: 'CONSIGNMENT',
         label: 'Ký gửi',
         description: 'Đơn ký gửi',
         icon: 'Truck',
-        accent: 'border-orange-400/25 bg-gradient-to-br from-orange-50 to-orange-100/40',
-        iconClass: 'bg-orange-500/12 text-orange-700',
+        accent: '',
+        iconClass: '',
       },
       {
         type: 'PROXY_PAYMENT',
         label: 'Thanh toán hộ',
         description: 'Đơn thanh toán',
         icon: 'CreditCard',
-        accent: 'border-stone-400/25 bg-gradient-to-br from-stone-50 to-stone-100/50',
-        iconClass: 'bg-stone-500/12 text-stone-700',
+        accent: '',
+        iconClass: '',
       },
     ] satisfies PortalStatCardConfig[],
 
@@ -156,14 +156,14 @@ export const portalConfig = {
         type: 'PROXY_PURCHASE',
         title: 'Đơn hàng mua hộ',
         limit: 5,
-        headerClass: 'bg-amber-600/90 text-white',
+        headerClass: '',
         viewAllHref: '/orders?type=PROXY_PURCHASE',
       },
       {
         type: 'PROXY_ORDER',
         title: 'Đơn hàng đặt hàng hộ',
         limit: 5,
-        headerClass: 'bg-yellow-700/90 text-white',
+        headerClass: '',
         viewAllHref: '/orders?type=PROXY_ORDER',
       },
     ] satisfies PortalOrderTableConfig[],

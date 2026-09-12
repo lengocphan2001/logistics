@@ -1,29 +1,21 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import { Inbox, Loader2, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { ordersService, type CustomerOrder } from '@/services/orders.service';
 import { ORDER_TYPES, orderTypeLabels, type OrderType } from '@/lib/order-type';
-import { orderStatusBadgeColors, orderStatusLabels } from '@/lib/order-status';
-import { formatCny } from '@/lib/currency';
-import { Badge } from '@/components/ui/badge';
+import { icon } from '@/lib/icon';
 import { Input } from '@/components/ui/input';
-import { buttonVariants } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { LoadingState } from '@/components/ui/loading-state';
 import { cn } from '@/lib/utils';
 import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
-import { CustomerOrderCard } from '@/components/portal/CustomerOrderCard';
+import { OrderTable } from '@/components/portal/OrderTable';
+
+const FILTERS: { value: OrderType | 'ALL'; label: string }[] = [
+  { value: 'ALL', label: 'Tất cả' },
+  ...ORDER_TYPES.map((type) => ({ value: type, label: orderTypeLabels[type] })),
+];
 
 function OrdersContent() {
   const searchParams = useSearchParams();
@@ -58,113 +50,57 @@ function OrdersContent() {
   return (
     <div className="space-y-6">
       <PortalPageHeader
-        eyebrow="Đơn hàng"
         title={trackMode ? 'Tra cứu vận đơn' : 'Danh sách đơn hàng'}
-        description="Theo dõi trạng thái, phí và tiến độ xử lý đơn hàng của bạn"
+        description="Theo dõi trạng thái, phí và tiến độ xử lý đơn hàng của bạn."
       />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap sm:overflow-visible sm:pb-0">
-          <button
-            type="button"
-            onClick={() => setActiveType('ALL')}
-            className={cn(
-              'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-              activeType === 'ALL'
-                ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-[var(--brand-hero-text)]'
-                : 'border-[var(--portal-border)] bg-white text-[var(--portal-body)] hover:border-[var(--brand-primary)]/40',
-            )}
-          >
-            Tất cả
-          </button>
-          {ORDER_TYPES.map((type) => (
+        <div
+          role="group"
+          aria-label="Lọc theo loại đơn"
+          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scroll-x-clean sm:flex-wrap sm:overflow-visible sm:pb-0"
+        >
+          {FILTERS.map((filter) => (
             <button
-              key={type}
+              key={filter.value}
               type="button"
-              onClick={() => setActiveType(type)}
+              onClick={() => setActiveType(filter.value)}
+              aria-pressed={activeType === filter.value}
               className={cn(
-                'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                activeType === type
-                  ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-[var(--brand-hero-text)]'
-                  : 'border-[var(--portal-border)] bg-white text-[var(--portal-body)] hover:border-[var(--brand-primary)]/40',
+                'shrink-0 rounded-[var(--radius-control)] border px-3 py-1.5 text-sm font-medium',
+                activeType === filter.value
+                  ? 'border-[var(--manifest-navy)] bg-[var(--manifest-navy)] text-white'
+                  : 'border-[var(--rule-strong)] bg-[var(--sheet-white)] text-[var(--graphite)] hover:border-[var(--manifest-navy)] hover:text-[var(--manifest-navy)]',
               )}
             >
-              {orderTypeLabels[type]}
+              {filter.label}
             </button>
           ))}
         </div>
 
         <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-muted)]" />
+          <Search
+            {...icon('inline')}
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--graphite)]"
+          />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm mã vận đơn..."
-            className="pl-9 bg-white"
+            placeholder="Tìm mã vận đơn"
+            aria-label="Tìm mã vận đơn"
+            className="pl-9"
           />
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--portal-border)] bg-white shadow-sm md:overflow-hidden">
-        {loading ? (
-          <div className="flex h-48 items-center justify-center">
-            <Loader2 className="h-7 w-7 animate-spin text-[var(--brand-accent)]" />
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-16 text-[var(--portal-muted)]">
-            <Inbox className="h-10 w-10 opacity-40" />
-            <p className="text-sm">Không có đơn hàng phù hợp</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-3 p-4 md:hidden">
-              {orders.map((order) => (
-                <CustomerOrderCard key={order.id} order={order} />
-              ))}
-            </div>
-            <div className="hidden overflow-x-auto md:block">
-              <Table>
-              <TableHeader>
-                <TableRow className="bg-[var(--brand-surface-muted)]/60 hover:bg-[var(--brand-surface-muted)]/60">
-                  <TableHead>Mã vận đơn</TableHead>
-                  <TableHead>Loại</TableHead>
-                  <TableHead>Ngày tạo</TableHead>
-                  <TableHead className="text-right">Tổng phí</TableHead>
-                  <TableHead className="text-right">Đã cọc</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-mono text-xs font-semibold">{order.billOfLadingCode}</TableCell>
-                    <TableCell className="text-sm">{orderTypeLabels[order.type]}</TableCell>
-                    <TableCell className="text-sm text-[var(--portal-muted)]">
-                      {format(new Date(order.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">{formatCny(order.totalFee)}</TableCell>
-                    <TableCell className="text-right">{formatCny(order.depositAmount)}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={orderStatusBadgeColors[order.status]}>
-                        {orderStatusLabels[order.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/orders/${order.id}`}
-                        className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-                      >
-                        Chi tiết
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </div>
-          </>
-        )}
+      <div className="panel md:overflow-hidden">
+        <OrderTable
+          orders={orders}
+          loading={loading}
+          showType
+          emptyTitle="Không có đơn hàng phù hợp"
+        />
       </div>
     </div>
   );
@@ -172,13 +108,7 @@ function OrdersContent() {
 
 export default function OrdersPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--brand-accent)]" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingState />}>
       <OrdersContent />
     </Suspense>
   );

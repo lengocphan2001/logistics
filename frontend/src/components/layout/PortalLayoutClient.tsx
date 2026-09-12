@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { getToken } from '@/lib/auth';
+import { LoadingState } from '@/components/ui/loading-state';
 import { PortalShell } from '@/components/layout/PortalShell';
 
 export function PortalLayoutClient({ children }: { children: React.ReactNode }) {
@@ -23,8 +23,8 @@ export function PortalLayoutClient({ children }: { children: React.ReactNode }) 
 
   if (!hasHydrated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--brand-surface)]">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--brand-accent)]" />
+      <div className="flex min-h-screen items-center justify-center bg-[var(--dock-grey)]">
+        <LoadingState />
       </div>
     );
   }

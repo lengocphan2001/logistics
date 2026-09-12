@@ -2,8 +2,10 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
+import { LucideProvider } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthHydration } from '@/components/auth/AuthHydration';
+import { ICON_STROKE } from '@/lib/icon';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -20,8 +22,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthHydration>{children}</AuthHydration>
-      <Toaster richColors position="top-right" />
+      {/* One stroke weight for every icon in the product, set once. */}
+      <LucideProvider strokeWidth={ICON_STROKE}>
+        <AuthHydration>{children}</AuthHydration>
+        <Toaster richColors position="top-right" />
+      </LucideProvider>
     </QueryClientProvider>
   );
 }

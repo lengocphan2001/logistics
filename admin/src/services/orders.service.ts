@@ -61,7 +61,15 @@ export interface AdminOrderItem {
   quantity: number;
   totalCny: number | string;
   url?: string | null;
-  properties?: { name: string; value: string }[] | null;
+  properties?:
+    | {
+        name: string;
+        value: string;
+        /** Original marketplace wording, used by staff on the shop page. */
+        nameOriginal?: string;
+        valueOriginal?: string;
+      }[]
+    | null;
 }
 
 export interface CreateOrderPayload {

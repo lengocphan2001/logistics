@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAction, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { AuthShell } from '@/components/auth/auth-shell';
+import { apiErrorMessage } from '@/lib/api-error';
 import { loginSchema, type LoginInput } from '@/lib/validations';
 import { useAuthStore } from '@/stores/auth.store';
 import api from '@/lib/api';
@@ -37,9 +38,8 @@ function LoginForm() {
       login(user, token);
       toast.success('Đăng nhập thành công!');
       router.push(redirectTo && redirectTo.startsWith('/') ? redirectTo : '/dashboard');
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Email hoặc mật khẩu không đúng';
-      toast.error(message);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Email hoặc mật khẩu không đúng'));
     }
   };
 
@@ -48,7 +48,7 @@ function LoginForm() {
       heroTitle={
         <>
           Vận chuyển quốc tế
-          <span className="mt-1 block text-[var(--auth-hero-muted)]">mượt mà & minh bạch.</span>
+          <span className="mt-1 block text-white/80">mượt mà & minh bạch.</span>
         </>
       }
       heroSubtitle="Theo dõi đơn hàng, quản lý ví ¥ và nhận hàng tại Việt Nam — tất cả trên một nền tảng."
@@ -64,7 +64,7 @@ function LoginForm() {
             placeholder="email@example.com"
             autoComplete="email"
             {...register('email')}
-            className={errors.email ? 'border-destructive focus-visible:ring-destructive/30' : ''}
+            className={errors.email ? 'border-destructive ' : ''}
           />
           {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
         </div>
@@ -77,7 +77,7 @@ function LoginForm() {
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               autoComplete="current-password"
-              className={`pr-11 ${errors.password ? 'border-destructive focus-visible:ring-destructive/30' : ''}`}
+              className={`pr-11 ${errors.password ? 'border-destructive ' : ''}`}
               {...register('password')}
             />
             <InputGroupAction
@@ -93,16 +93,16 @@ function LoginForm() {
         <Button
           type="submit"
           size="lg"
-          className="w-full bg-[var(--auth-accent)] text-white hover:bg-[oklch(0.44_0.095_72)]"
+          className="w-full "
           disabled={isSubmitting}
         >
           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Đăng nhập'}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[var(--auth-body-muted)]">
+      <p className="mt-6 text-center text-sm text-[var(--graphite)]">
         Chưa có tài khoản?{' '}
-        <Link href="/register" className="font-semibold text-[var(--auth-accent)] hover:underline">
+        <Link href="/register" className="font-semibold text-[var(--manifest-navy)] hover:underline">
           Đăng ký ngay
         </Link>
       </p>
@@ -115,7 +115,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="auth-page flex min-h-screen items-center justify-center bg-[var(--auth-surface)]">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--auth-accent)]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--manifest-navy)]" />
         </div>
       }
     >

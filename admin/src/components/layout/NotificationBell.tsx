@@ -6,9 +6,9 @@ import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { icon } from '@/lib/icon';
 import { notificationsService, type Notification } from '@/services/notifications.service';
 import { useNotifications } from '@/hooks/use-notifications';
 
@@ -36,14 +36,21 @@ export function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground relative"
+        className="relative inline-flex size-9 items-center justify-center rounded-[var(--radius-control)] text-[var(--graphite)] hover:bg-[var(--wash)] hover:text-[var(--ink)]"
         id="header-notifications"
       >
-        <Bell className={cn('w-4 h-4', ring && 'animate-bounce text-primary')} />
+        <Bell
+          {...icon('control')}
+          aria-hidden
+          className={cn(ring && 'text-[var(--manifest-navy)]')}
+        />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] bg-primary border-2 border-background">
+          <span
+            data-numeric
+            className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--seal-red)] px-1 text-[10px] font-bold text-white"
+          >
             {unreadCount > 99 ? '99+' : unreadCount}
-          </Badge>
+          </span>
         )}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
@@ -56,7 +63,7 @@ export function NotificationBell() {
               className="h-7 px-2 text-xs"
               onClick={handleMarkAllRead}
             >
-              <CheckCheck className="w-3.5 h-3.5 mr-1" />
+              <CheckCheck {...icon('inline')} aria-hidden className="size-3.5" />
               Đọc tất cả
             </Button>
           )}

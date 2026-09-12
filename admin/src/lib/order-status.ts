@@ -36,30 +36,43 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   DELIVERY_REQUESTED: 'Yêu cầu giao',
 };
 
+/**
+ * Colour states the class of the stage, the wording states the stage itself.
+ * Ten hues would be ten things to learn; three are enough to scan a list:
+ *
+ *   navy   — the order is moving
+ *   green  — money settled or the order is closed
+ *   red    — needs someone to act
+ *   grey   — inactive
+ *
+ * Within navy, an outline marks the first steps and a fill marks the later
+ * ones, so progress still reads at a glance.
+ */
 export const orderStatusBadgeColors: Record<OrderStatus, string> = {
-  CANCELLED: 'bg-gray-500/15 text-gray-800 border-gray-500/25 dark:text-gray-300',
-  DEPOSIT_PAID: 'bg-amber-500/15 text-amber-900 border-amber-500/25 dark:text-amber-300',
-  PURCHASED: 'bg-blue-500/15 text-blue-900 border-blue-500/25 dark:text-blue-300',
-  SHOP_SHIPPED: 'bg-indigo-500/15 text-indigo-900 border-indigo-500/25 dark:text-indigo-300',
-  IN_TRANSIT_TO_VN: 'bg-violet-500/15 text-violet-900 border-violet-500/25 dark:text-violet-300',
-  AT_VN_WAREHOUSE: 'bg-purple-500/15 text-purple-900 border-purple-500/25 dark:text-purple-300',
-  PAID: 'bg-cyan-500/15 text-cyan-900 border-cyan-500/25 dark:text-cyan-300',
-  COMPLETED: 'bg-green-500/15 text-green-900 border-green-500/25 dark:text-green-300',
-  COMPLAINT: 'bg-red-500/15 text-red-900 border-red-500/25 dark:text-red-300',
-  DELIVERY_REQUESTED: 'bg-orange-500/15 text-orange-900 border-orange-500/25 dark:text-orange-300',
+  CANCELLED: 'border-[var(--rule-strong)] bg-[var(--wash)] text-[var(--graphite)]',
+  DEPOSIT_PAID: 'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
+  PURCHASED: 'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
+  SHOP_SHIPPED: 'border-[var(--navy-wash)] bg-[var(--navy-wash)] text-[var(--manifest-navy)]',
+  IN_TRANSIT_TO_VN: 'border-[var(--navy-wash)] bg-[var(--navy-wash)] text-[var(--manifest-navy)]',
+  AT_VN_WAREHOUSE: 'border-[var(--manifest-navy)] bg-[var(--manifest-navy)] text-white',
+  DELIVERY_REQUESTED: 'border-[var(--manifest-navy)] bg-[var(--manifest-navy)] text-white',
+  PAID: 'border-[var(--green-wash)] bg-[var(--green-wash)] text-[var(--ledger-green)]',
+  COMPLETED: 'border-[var(--ledger-green)] bg-[var(--ledger-green)] text-white',
+  COMPLAINT: 'border-[var(--seal-red)] bg-[var(--red-wash)] text-[var(--seal-red)]',
 };
 
+/** Fill used in the dashboard status bar. Same four classes as the badges. */
 export const orderStatusBarColors: Record<OrderStatus, string> = {
-  CANCELLED: 'bg-gray-400',
-  DEPOSIT_PAID: 'bg-amber-500',
-  PURCHASED: 'bg-blue-500',
-  SHOP_SHIPPED: 'bg-indigo-500',
-  IN_TRANSIT_TO_VN: 'bg-violet-500',
-  AT_VN_WAREHOUSE: 'bg-purple-500',
-  PAID: 'bg-cyan-500',
-  COMPLETED: 'bg-green-500',
-  COMPLAINT: 'bg-red-500',
-  DELIVERY_REQUESTED: 'bg-orange-500',
+  CANCELLED: 'bg-[var(--rule-strong)]',
+  DEPOSIT_PAID: 'bg-[var(--navy-wash)]',
+  PURCHASED: 'bg-[var(--navy-wash)]',
+  SHOP_SHIPPED: 'bg-[#4a7ba8]',
+  IN_TRANSIT_TO_VN: 'bg-[#4a7ba8]',
+  AT_VN_WAREHOUSE: 'bg-[var(--manifest-navy)]',
+  DELIVERY_REQUESTED: 'bg-[var(--manifest-navy)]',
+  PAID: 'bg-[#4fa389]',
+  COMPLETED: 'bg-[var(--ledger-green)]',
+  COMPLAINT: 'bg-[var(--seal-red)]',
 };
 
 /** Đơn đang trong quá trình vận chuyển / xử lý */

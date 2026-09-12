@@ -1,13 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, LogOut, Package, User, Wallet } from 'lucide-react';
+import { ChevronDown, LogOut, Search, User, Wallet } from 'lucide-react';
 import { useExchangeRate } from '@/hooks/use-exchange-rate';
 import { useCustomerProfile } from '@/hooks/use-customer-profile';
 import { useAuthStore } from '@/stores/auth.store';
 import { portalConfig } from '@/config/portal.config';
 import { formatCny, formatVnd, cnyToVnd } from '@/lib/currency';
+import { icon } from '@/lib/icon';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +27,7 @@ export function PortalTopBar() {
   const user = useAuthStore((s) => s.user);
   const { vndPerCny, loading: rateLoading } = useExchangeRate();
   const { profile, loading: profileLoading } = useCustomerProfile();
+  const [term, setTerm] = useState('');
 
   const balance = Number(profile?.balance ?? 0);
   const initials = (profile?.name || user?.name || 'K')
@@ -39,83 +42,122 @@ export function PortalTopBar() {
     router.push('/login');
   };
 
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = term.trim();
+    if (!q) return;
+    router.push(`/shop?q=${encodeURIComponent(q)}`);
+  };
+
+  const searchField = (
+    <form onSubmit={submitSearch} role="search" className="relative w-full">
+      <Search
+        {...icon('inline')}
+        aria-hidden
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--graphite)]"
+      />
+      <input
+        type="search"
+        value={term}
+        onChange={(e) => setTerm(e.target.value)}
+        placeholder="Tìm sản phẩm trên Taobao, 1688, JD"
+        aria-label="Tìm sản phẩm"
+        className="h-10 w-full rounded-[var(--radius-control)] border border-[var(--rule-strong)] bg-[var(--dock-grey)] pl-9 pr-3 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--graphite)]/75 hover:border-[var(--graphite)] focus-visible:border-[var(--manifest-navy)] focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)]"
+      />
+    </form>
+  );
+
   return (
-    <div className="border-b border-[var(--portal-border)] bg-[var(--portal-topbar)]">
-      <div className="mx-auto flex max-w-7xl flex-nowrap items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-6 sm:py-2.5 lg:px-8">
-        <Link href={portalConfig.brand.homeHref} className="flex shrink-0 items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] shadow-sm sm:h-9 sm:w-9">
-            <Package className="h-4 w-4 text-[var(--brand-hero-text)]" />
-          </div>
-          <div className="hidden leading-tight sm:block">
-            <p className="text-sm font-bold text-[var(--portal-foreground)]">{portalConfig.brand.name}</p>
-            <p className="text-[11px] text-[var(--portal-muted)]">{portalConfig.brand.tagline}</p>
-          </div>
+    <header className="border-b border-[var(--rule)] bg-[var(--sheet-white)]">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-5 sm:px-6 lg:px-8">
+        <Link
+          href={portalConfig.brand.homeHref}
+          className="flex shrink-0 items-baseline gap-2"
+        >
+          <span className="font-heading text-[1.0625rem] font-bold tracking-[-0.02em] text-[var(--ink)]">
+            {portalConfig.brand.name}
+          </span>
+          <span className="hidden text-xs text-[var(--graphite)] lg:inline">
+            {portalConfig.brand.tagline}
+          </span>
         </Link>
 
-        <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1.5 text-xs sm:gap-3 sm:text-sm">
-          <div className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--portal-border)] bg-white/60 px-2 py-1 sm:px-3 sm:py-1.5">
-            <span className="hidden text-[var(--portal-muted)] sm:inline">Tỉ giá: </span>
-            {rateLoading ? (
-              <Skeleton className="inline-block h-3.5 w-14 align-middle sm:h-4 sm:w-24" />
-            ) : (
-              <span className="font-semibold text-[var(--portal-foreground)]">
-                <span className="sm:hidden">1¥={formatVnd(vndPerCny).replace('₫', '').trim()}đ</span>
-                <span className="hidden sm:inline">
-                  1¥ = {formatVnd(vndPerCny).replace('₫', '').trim()}đ
-                </span>
-              </span>
-            )}
-          </div>
+        <div className="hidden min-w-0 flex-1 md:block">{searchField}</div>
 
-          <div className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--portal-border)] bg-white/60 px-2 py-1 sm:px-3 sm:py-1.5">
-            <span className="hidden text-[var(--portal-muted)] sm:inline">Số dư: </span>
-            {profileLoading ? (
-              <Skeleton className="inline-block h-3.5 w-12 align-middle sm:h-4 sm:w-20" />
-            ) : (
-              <span className="font-bold text-[var(--brand-accent)]">{formatCny(balance)}</span>
-            )}
-            {!profileLoading && (
-              <span className="ml-1.5 hidden text-xs text-[var(--portal-muted)] md:inline">
-                (≈ {formatVnd(cnyToVnd(balance, vndPerCny))})
-              </span>
-            )}
-          </div>
+        <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
+          <dl className="hidden items-center gap-4 text-xs sm:flex">
+            <div className="text-right">
+              <dt className="text-[var(--graphite)]">Tỉ giá</dt>
+              <dd
+                data-numeric
+                className="font-semibold text-[var(--ink)]"
+              >
+                {rateLoading ? (
+                  <Skeleton className="inline-block h-4 w-20 align-middle" />
+                ) : (
+                  `1¥ = ${formatVnd(vndPerCny).replace('₫', '').trim()}đ`
+                )}
+              </dd>
+            </div>
+            <div className="h-8 w-px bg-[var(--rule)]" aria-hidden />
+            <div className="text-right">
+              <dt className="text-[var(--graphite)]">Số dư ví</dt>
+              <dd data-numeric className="font-semibold text-[var(--ink)]">
+                {profileLoading ? (
+                  <Skeleton className="inline-block h-4 w-16 align-middle" />
+                ) : (
+                  <>
+                    {formatCny(balance)}
+                    <span className="ml-1.5 hidden font-normal text-[var(--graphite)] lg:inline">
+                      ≈ {formatVnd(cnyToVnd(balance, vndPerCny))}
+                    </span>
+                  </>
+                )}
+              </dd>
+            </div>
+          </dl>
 
           <NotificationBell />
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex shrink-0 items-center gap-1 rounded-xl border border-[var(--portal-border)] bg-white/70 p-1 outline-none hover:bg-white sm:gap-2 sm:px-2 sm:py-1.5">
-              <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                <AvatarFallback className="bg-[var(--brand-primary)]/15 text-[10px] font-bold text-[var(--brand-accent)] sm:text-xs">
+            <DropdownMenuTrigger className="flex shrink-0 items-center gap-2 rounded-[var(--radius-control)] px-1.5 py-1 outline-none hover:bg-[var(--wash)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)]">
+              <Avatar className="size-8 rounded-[var(--radius-control)]">
+                <AvatarFallback className="rounded-[var(--radius-control)] bg-[var(--navy-wash)] text-[11px] font-bold text-[var(--manifest-navy)]">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden max-w-[140px] text-left sm:block">
-                <p className="truncate text-sm font-semibold leading-tight">
-                  {profile?.name || user?.name || 'Khách hàng'}
-                </p>
-                <p className="truncate text-[11px] text-[var(--portal-muted)]">Khách hàng</p>
-              </div>
-              <ChevronDown className="hidden h-4 w-4 text-[var(--portal-muted)] sm:block" />
+              <span className="hidden max-w-[150px] truncate text-sm font-medium text-[var(--ink)] lg:block">
+                {profile?.name || user?.name || 'Khách hàng'}
+              </span>
+              <ChevronDown
+                {...icon('inline')}
+                aria-hidden
+                className="hidden text-[var(--graphite)] lg:block"
+              />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem onClick={() => router.push('/profile')}>
-                <User className="h-4 w-4" />
+                <User {...icon('inline')} aria-hidden />
                 Hồ sơ cá nhân
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/wallet')}>
-                <Wallet className="h-4 w-4" />
-                Ví & nạp/rút
+                <Wallet {...icon('inline')} aria-hidden />
+                Ví và nạp rút
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} variant="destructive">
-                <LogOut className="h-4 w-4" />
+                <LogOut {...icon('inline')} aria-hidden />
                 Đăng xuất
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-    </div>
+
+      {/* Search keeps its own row on phones instead of collapsing behind an icon. */}
+      <div className="border-t border-[var(--rule)] px-4 py-2.5 md:hidden">
+        {searchField}
+      </div>
+    </header>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ArrowDownToLine, ArrowUpFromLine, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { apiErrorMessage } from '@/lib/api-error';
 import { toast } from 'sonner';
 import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
 import { Button } from '@/components/ui/button';
@@ -63,8 +64,8 @@ function WalletRequestForm() {
       setVndAmount('');
       setReferenceCode('');
       setNote('');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Không thể gửi yêu cầu');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Không thể gửi yêu cầu'));
     } finally {
       setSubmitting(false);
     }
@@ -76,19 +77,12 @@ function WalletRequestForm() {
         eyebrow="Ví"
         title={type === 'DEPOSIT' ? 'Yêu cầu nạp tiền' : 'Yêu cầu rút tiền'}
         description={`Số dư hiện tại: ${formatCny(balance)} (≈ ${formatVnd(cnyToVnd(balance, vndPerCny))})`}
-        icon={
-          type === 'DEPOSIT' ? (
-            <ArrowDownToLine className="h-6 w-6 text-emerald-600" />
-          ) : (
-            <ArrowUpFromLine className="h-6 w-6 text-orange-600" />
-          )
-        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-[var(--portal-border)] bg-white p-4 shadow-sm sm:p-6"
+          className="space-y-4 rounded-[var(--radius-panel)] border border-[var(--rule)] bg-[var(--sheet-white)] p-4  sm:p-6"
         >
         <div className="space-y-1.5">
           <Label>Loại giao dịch</Label>
@@ -149,9 +143,9 @@ function WalletRequestForm() {
         </Button>
       </form>
 
-        <aside className="h-fit rounded-2xl border border-[var(--portal-border)] bg-[var(--brand-surface-muted)]/40 p-4 text-sm sm:p-5 lg:sticky lg:top-6">
-          <p className="font-semibold text-[var(--portal-foreground)]">Lưu ý</p>
-          <ul className="mt-3 space-y-2 text-[var(--portal-muted)]">
+        <aside className="h-fit rounded-[var(--radius-panel)] border border-[var(--rule)] bg-[var(--wash)]/40 p-4 text-sm sm:p-5 lg:sticky lg:top-6">
+          <h2 className="font-heading text-sm font-semibold text-[var(--ink)]">Lưu ý</h2>
+          <ul className="mt-3 space-y-2 text-[var(--graphite)]">
             <li>Yêu cầu sẽ ở trạng thái chờ duyệt trước khi cập nhật số dư.</li>
             <li>Nạp tiền: nhập mã tham chiếu chuyển khoản để admin đối soát nhanh hơn.</li>
             <li>Rút tiền: đảm bảo thông tin ngân hàng trong hồ sơ đã chính xác.</li>

@@ -18,11 +18,15 @@ export const orderTypeLabels: Record<OrderType, string> = {
   PROXY_PURCHASE: 'Mua hộ',
 };
 
+/**
+ * Order type is a category, not a state, so it takes no colour of its own:
+ * one neutral outline for all four, told apart by the wording.
+ */
 export const orderTypeBadgeColors: Record<OrderType, string> = {
-  CONSIGNMENT: 'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300',
-  PROXY_ORDER: 'border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-300',
-  PROXY_PAYMENT: 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300',
-  PROXY_PURCHASE: 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300',
+  CONSIGNMENT: 'border-[var(--rule-strong)] bg-transparent text-[var(--graphite)]',
+  PROXY_ORDER: 'border-[var(--rule-strong)] bg-transparent text-[var(--graphite)]',
+  PROXY_PAYMENT: 'border-[var(--rule-strong)] bg-transparent text-[var(--graphite)]',
+  PROXY_PURCHASE: 'border-[var(--rule-strong)] bg-transparent text-[var(--graphite)]',
 };
 
 export const orderTypeDescriptions: Record<OrderType, string> = {

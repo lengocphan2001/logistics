@@ -3,32 +3,40 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Controls use a 6px radius — softer than the square product media, tighter
+ * than a pill. Only colour transitions; no lift, no shadow, no translate.
+ */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 aria-invalid:border-destructive aria-invalid:ring-destructive/25 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] border border-transparent text-sm font-semibold whitespace-nowrap outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:border-[var(--seal-red)] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
+        /** Structural action: navigate, confirm, submit a form. */
         default:
-          "bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/30",
+          "bg-[var(--manifest-navy)] text-white hover:bg-[var(--navy-deep)]",
+        /** Commerce action: buy, add to cart, place order. Seal Red only here. */
+        commerce:
+          "bg-[var(--seal-red)] text-white hover:bg-[#8f0f1f] focus-visible:outline-[var(--seal-red)]",
         outline:
-          "border-border/80 bg-background/80 text-foreground shadow-xs backdrop-blur-sm hover:border-primary/35 hover:bg-accent/50 hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground dark:border-input/80 dark:bg-input/20 dark:hover:bg-input/40",
+          "border-[var(--rule-strong)] bg-[var(--sheet-white)] text-[var(--ink)] hover:border-[var(--manifest-navy)] hover:text-[var(--manifest-navy)]",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-[var(--wash)] text-[var(--ink)] hover:bg-[var(--navy-wash)] hover:text-[var(--manifest-navy)]",
         ghost:
-          "text-muted-foreground hover:bg-accent/60 hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground",
+          "text-[var(--graphite)] hover:bg-[var(--wash)] hover:text-[var(--ink)]",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm shadow-destructive/20 hover:bg-destructive/90",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-[var(--red-wash)] text-[var(--seal-red)] hover:bg-[var(--seal-red)] hover:text-white focus-visible:outline-[var(--seal-red)]",
+        link: "h-auto p-0 text-[var(--manifest-navy)] underline underline-offset-4 hover:text-[var(--navy-deep)]",
       },
       size: {
-        default: "h-10 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-        xs: "h-7 gap-1 rounded-lg px-2.5 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-9 gap-1.5 rounded-lg px-3 text-[0.8125rem] has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-11 rounded-xl px-5 text-[0.9375rem]",
-        icon: "size-10",
-        "icon-xs": "size-7 rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-9 rounded-lg",
-        "icon-lg": "size-11 rounded-xl",
+        default: "h-10 px-4",
+        xs: "h-6 gap-1 px-2 text-xs [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-9 px-3 text-[0.8125rem] [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "h-12 px-6 text-[0.9375rem]",
+        icon: "size-9",
+        "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-8 [&_svg:not([class*='size-'])]:size-3.5",
+        "icon-lg": "size-10 [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: {

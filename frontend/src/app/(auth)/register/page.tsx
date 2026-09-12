@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAction, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { AuthShell } from '@/components/auth/auth-shell';
+import { apiErrorMessages } from '@/lib/api-error';
 import { registerSchema, type RegisterInput } from '@/lib/validations';
 import { useAuthStore } from '@/stores/auth.store';
 import api from '@/lib/api';
@@ -36,9 +37,10 @@ export default function RegisterPage() {
       login(user, token);
       toast.success('Đăng ký thành công!');
       router.push('/dashboard');
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Không thể đăng ký tài khoản';
-      toast.error(Array.isArray(message) ? message.join(', ') : message);
+    } catch (err) {
+      toast.error(
+        apiErrorMessages(err)?.join(', ') ?? 'Không thể đăng ký tài khoản',
+      );
     }
   };
 
@@ -85,7 +87,7 @@ export default function RegisterPage() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
-                className={`pr-11 ${errors.password ? 'border-destructive focus-visible:ring-destructive/30' : ''}`}
+                className={`pr-11 ${errors.password ? 'border-destructive ' : ''}`}
                 {...register('password')}
               />
               <InputGroupAction
@@ -103,7 +105,7 @@ export default function RegisterPage() {
               id="confirmPassword"
               type="password"
               placeholder="••••••••"
-              className={errors.confirmPassword ? 'border-destructive focus-visible:ring-destructive/30' : ''}
+              className={errors.confirmPassword ? 'border-destructive ' : ''}
               {...register('confirmPassword')}
             />
             {errors.confirmPassword && (
@@ -115,16 +117,16 @@ export default function RegisterPage() {
         <Button
           type="submit"
           size="lg"
-          className="w-full bg-[var(--auth-accent)] text-white hover:bg-[oklch(0.44_0.095_72)]"
+          className="w-full "
           disabled={isSubmitting}
         >
           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Đăng ký'}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[var(--auth-body-muted)]">
+      <p className="mt-6 text-center text-sm text-[var(--graphite)]">
         Đã có tài khoản?{' '}
-        <Link href="/login" className="font-semibold text-[var(--auth-accent)] hover:underline">
+        <Link href="/login" className="font-semibold text-[var(--manifest-navy)] hover:underline">
           Đăng nhập
         </Link>
       </p>

@@ -1,18 +1,22 @@
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { icon } from '@/lib/icon';
 import { cnyToVnd, formatCny, formatVnd } from '@/lib/currency';
-import type { ProductItem } from '@/services/products.service';
 
-const PLATFORM_LABEL: Record<string, { label: string; className: string }> = {
-  taobao: { label: 'Taobao', className: 'bg-orange-500' },
-  '1688': { label: '1688', className: 'bg-red-600' },
-  jd: { label: 'JD', className: 'bg-red-500' },
-  alibaba: { label: 'Alibaba', className: 'bg-orange-600' },
+const PLATFORM_LABEL: Record<string, string> = {
+  taobao: 'Taobao',
+  '1688': '1688',
+  jd: 'JD',
+  alibaba: 'Alibaba',
 };
 
-export function platformBadge(platform?: string) {
+/**
+ * Source marketplace. It is a provenance label, not a status, so it stays in
+ * the structural navy rather than taking a colour of its own.
+ */
+export function platformLabel(platform?: string) {
   if (!platform) return null;
-  return PLATFORM_LABEL[platform] ?? { label: platform, className: 'bg-gray-600' };
+  return PLATFORM_LABEL[platform] ?? platform;
 }
 
 export function ProductPriceBlock({
@@ -27,27 +31,45 @@ export function ProductPriceBlock({
   compact?: boolean;
 }) {
   const vnd = cnyToVnd(priceCny, vndPerCny);
-  const originalVnd =
-    originalPriceCny && originalPriceCny > priceCny
-      ? cnyToVnd(originalPriceCny, vndPerCny)
-      : null;
+  const discounted = originalPriceCny != null && originalPriceCny > priceCny;
+  const originalVnd = discounted ? cnyToVnd(originalPriceCny!, vndPerCny) : null;
+  const cutPercent = discounted
+    ? Math.round(((originalPriceCny! - priceCny) / originalPriceCny!) * 100)
+    : 0;
 
   return (
-    <div className={cn('space-y-0.5', compact && 'space-y-0')}>
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-        <span className={cn('font-bold text-rose-600', compact ? 'text-sm' : 'text-base')}>
-          {formatVnd(vnd)}
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      <span
+        data-numeric
+        className={cn(
+          'font-bold text-[var(--seal-red)]',
+          compact ? 'text-[0.9375rem]' : 'text-xl',
+        )}
+      >
+        {formatVnd(vnd)}
+      </span>
+
+      <span data-numeric className="text-xs font-medium text-[var(--graphite)]">
+        {formatCny(priceCny)}
+      </span>
+
+      {originalVnd != null && (
+        <span
+          data-numeric
+          className="text-xs text-[var(--graphite)]/70 line-through"
+        >
+          {formatVnd(originalVnd)}
         </span>
-        {originalVnd != null && (
-          <span className="text-xs text-gray-400 line-through">{formatVnd(originalVnd)}</span>
-        )}
-      </div>
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0 text-xs text-gray-600">
-        <span className="font-semibold">{formatCny(priceCny)}</span>
-        {originalPriceCny != null && originalPriceCny > priceCny && (
-          <span className="text-gray-400 line-through">{formatCny(originalPriceCny)}</span>
-        )}
-      </div>
+      )}
+
+      {cutPercent >= 1 && (
+        <span
+          data-numeric
+          className="rounded-[2px] bg-[var(--red-wash)] px-1 text-[10px] font-bold text-[var(--seal-red)]"
+        >
+          −{cutPercent}%
+        </span>
+      )}
     </div>
   );
 }
@@ -63,16 +85,27 @@ export function ProductMetaRow({
   const displayRating = rating ? Math.min(5, Math.max(1, Math.round(rating))) : null;
 
   return (
-    <div className="flex items-center justify-between text-xs text-gray-500">
+    <div className="flex items-center justify-between text-xs text-[var(--graphite)]">
       {displayRating ? (
-        <span className="inline-flex items-center gap-0.5">
-          <span className="font-medium text-gray-700">{displayRating}</span>
-          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+        <span className="inline-flex items-center gap-1">
+          <Star
+            {...icon('inline')}
+            aria-hidden
+            className="size-3.5 fill-current text-[var(--manifest-navy)]"
+          />
+          <span data-numeric className="font-medium text-[var(--ink)]">
+            {displayRating}
+          </span>
         </span>
       ) : (
         <span />
       )}
-      {soldCount ? <span>Đã bán {Number(soldCount).toLocaleString('vi-VN')}</span> : null}
+      {soldCount ? (
+        <span>
+          Đã bán{' '}
+          <span data-numeric>{Number(soldCount).toLocaleString('vi-VN')}</span>
+        </span>
+      ) : null}
     </div>
   );
 }

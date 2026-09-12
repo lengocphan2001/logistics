@@ -4,11 +4,59 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   Design tokens — "Dock" system, operator console build
+   Same palette as the customer portal, tuned denser: an admin
+   reads rows all day, so rules and alignment carry the layout.
+   ============================================================ */
+
+:root {
+  /* Named palette */
+  --dock-grey: #f2f4f6;     /* page ground */
+  --sheet-white: #ffffff;   /* panel surface */
+  --ink: #000000;           /* headings, identifiers, money */
+  --graphite: #424a57;      /* secondary text, meta */
+  --manifest-navy: #16324f; /* chrome: sidebar, header, links */
+  --seal-red: #b01427;      /* destructive, overdue, money out */
+  --ledger-green: #116149;  /* confirmed, paid, money in */
+
+  /* Derived neutrals */
+  --rule: #d7dbe0;
+  --rule-strong: #b9c0c8;
+  --wash: #e8ebee;
+  --navy-wash: #e6ecf3;
+  --red-wash: #fdecee;
+  --green-wash: #e7f2ee;
+  --navy-deep: #0e2338;
+
+  /* Radius scale — intentionally uneven */
+  --radius-panel: 4px;
+  --radius-control: 6px;
+  --radius: 6px;
+
+  /* One elevation, overlays only */
+  --lift: 0 8px 28px -12px rgba(11, 26, 43, 0.35);
+  --lift-modal: 0 24px 64px -24px rgba(11, 26, 43, 0.5);
+
+  --motion-fast: 120ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
   --font-mono: var(--font-mono);
+
+  --color-ink: var(--ink);
+  --color-graphite: var(--graphite);
+  --color-navy: var(--manifest-navy);
+  --color-seal: var(--seal-red);
+  --color-ledger: var(--ledger-green);
+  --color-rule: var(--rule);
+  --color-wash: var(--wash);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -38,159 +86,249 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 10px;
 }
 
-/* ─── Light theme ─── */
+/* ─── Semantic mapping (shadcn contract) ─── */
 :root {
-  --background: oklch(0.985 0.004 250);
-  --foreground: oklch(0.22 0.025 255);
+  --background: var(--dock-grey);
+  --foreground: var(--ink);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.025 255);
+  --card: var(--sheet-white);
+  --card-foreground: var(--ink);
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.025 255);
+  --popover: var(--sheet-white);
+  --popover-foreground: var(--ink);
 
-  /* Indigo / violet primary — đủ đậm để đọc trên nền sáng */
-  --primary: oklch(0.48 0.22 264);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary: var(--manifest-navy);
+  --primary-foreground: #ffffff;
 
-  --secondary: oklch(0.955 0.012 250);
-  --secondary-foreground: oklch(0.28 0.035 264);
+  --secondary: var(--wash);
+  --secondary-foreground: var(--manifest-navy);
 
-  --muted: oklch(0.96 0.006 250);
-  --muted-foreground: oklch(0.44 0.025 255);
+  --muted: var(--wash);
+  --muted-foreground: var(--graphite);
 
-  --accent: oklch(0.94 0.025 264);
-  --accent-foreground: oklch(0.28 0.08 264);
+  --accent: var(--navy-wash);
+  --accent-foreground: var(--manifest-navy);
 
-  --destructive: oklch(0.52 0.22 27);
-  --destructive-foreground: oklch(0.99 0 0);
+  --destructive: var(--seal-red);
+  --destructive-foreground: #ffffff;
 
-  --border: oklch(0.88 0.01 250);
-  --input: oklch(0.94 0.008 250);
-  --ring: oklch(0.48 0.22 264 / 35%);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--manifest-navy);
 
-  /* Charts */
-  --chart-1: oklch(0.48 0.22 264);
-  --chart-2: oklch(0.58 0.19 200);
-  --chart-3: oklch(0.66 0.18 150);
-  --chart-4: oklch(0.72 0.18 80);
-  --chart-5: oklch(0.58 0.22 30);
+  --chart-1: var(--manifest-navy);
+  --chart-2: var(--ledger-green);
+  --chart-3: var(--seal-red);
+  --chart-4: #6b7684;
+  --chart-5: #2f6f9e;
 
-  --radius: 0.625rem;
-
-  /* Sidebar — light mode */
-  --sidebar: oklch(0.995 0.002 250);
-  --sidebar-foreground: oklch(0.26 0.025 255);
-  --sidebar-primary: oklch(0.48 0.22 264);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.02 264);
-  --sidebar-accent-foreground: oklch(0.28 0.06 264);
-  --sidebar-border: oklch(0.9 0.008 250);
-  --sidebar-ring: oklch(0.48 0.22 264 / 35%);
+  /* The sidebar is the one dark surface: it never scrolls with the data. */
+  --sidebar: var(--manifest-navy);
+  --sidebar-foreground: rgba(255, 255, 255, 0.75);
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: var(--manifest-navy);
+  --sidebar-accent: rgba(255, 255, 255, 0.12);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: var(--navy-deep);
+  --sidebar-ring: #ffffff;
 }
 
-/* ─── Dark theme ─── */
+/* ─── Dark theme — same hues, inverted ground ─── */
 .dark {
-  --background: oklch(0.11 0.015 255);
-  --foreground: oklch(0.92 0.005 250);
+  --dock-grey: #0f1418;
+  --sheet-white: #161c22;
+  --ink: #f4f6f8;
+  --graphite: #a6b0bb;
+  --manifest-navy: #8fb5dc;
+  --seal-red: #f0788a;
+  --ledger-green: #58b493;
 
-  --card: oklch(0.15 0.018 255);
-  --card-foreground: oklch(0.92 0.005 250);
+  --rule: #2a333c;
+  --rule-strong: #3b4650;
+  --wash: #1c242b;
+  --navy-wash: #1b2a39;
+  --red-wash: #33191e;
+  --green-wash: #14291f;
+  --navy-deep: #0b1219;
 
-  --popover: oklch(0.15 0.018 255);
-  --popover-foreground: oklch(0.92 0.005 250);
+  --background: var(--dock-grey);
+  --foreground: var(--ink);
+  --card: var(--sheet-white);
+  --card-foreground: var(--ink);
+  --popover: var(--sheet-white);
+  --popover-foreground: var(--ink);
+  --primary: var(--manifest-navy);
+  --primary-foreground: #0f1418;
+  --secondary: var(--wash);
+  --secondary-foreground: var(--ink);
+  --muted: var(--wash);
+  --muted-foreground: var(--graphite);
+  --accent: var(--navy-wash);
+  --accent-foreground: var(--ink);
+  --destructive: var(--seal-red);
+  --destructive-foreground: #0f1418;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--manifest-navy);
 
-  --primary: oklch(0.64 0.20 264);
-  --primary-foreground: oklch(0.99 0 0);
-
-  --secondary: oklch(0.20 0.025 258);
-  --secondary-foreground: oklch(0.88 0.008 250);
-
-  --muted: oklch(0.19 0.018 255);
-  --muted-foreground: oklch(0.58 0.015 250);
-
-  --accent: oklch(0.23 0.035 264);
-  --accent-foreground: oklch(0.88 0.01 250);
-
-  --destructive: oklch(0.65 0.22 25);
-  --destructive-foreground: oklch(0.99 0 0);
-
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.64 0.20 264 / 40%);
-
-  --chart-1: oklch(0.64 0.20 264);
-  --chart-2: oklch(0.68 0.17 200);
-  --chart-3: oklch(0.72 0.17 150);
-  --chart-4: oklch(0.78 0.17 80);
-  --chart-5: oklch(0.66 0.21 30);
-
-  --sidebar: oklch(0.13 0.018 255);
-  --sidebar-foreground: oklch(0.88 0.008 250);
-  --sidebar-primary: oklch(0.64 0.20 264);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.19 0.025 258);
-  --sidebar-accent-foreground: oklch(0.88 0.008 250);
-  --sidebar-border: oklch(1 0 0 / 7%);
-  --sidebar-ring: oklch(0.64 0.20 264 / 40%);
+  --sidebar: #0b1219;
+  --sidebar-foreground: rgba(255, 255, 255, 0.7);
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #0b1219;
+  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #000000;
+  --sidebar-ring: #ffffff;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
   }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
+
   h1, h2, h3, h4, h5, h6 {
-    @apply text-foreground;
+    font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+    color: var(--ink);
+    letter-spacing: -0.012em;
   }
-  p {
-    @apply text-foreground/90;
+
+  /* Money, counts and quantities align in columns when scanning a table. */
+  [data-numeric] {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Explanatory copy stays under ~72 characters per line. */
+  [data-prose] {
+    max-width: 68ch;
+    line-height: 1.6;
+    color: var(--graphite);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--manifest-navy);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* On the navy sidebar and modal chrome the ring flips to white. */
+  [data-chrome] :focus-visible,
+  [data-chrome]:focus-visible {
+    outline-color: #ffffff;
   }
 }
 
-/* ─── Smooth theme transition ─── */
-*,
-*::before,
-*::after {
+/* One stroke weight across every icon in the product. */
+svg.lucide {
+  stroke-width: 1.75;
+}
+
+/* Only colour changes are animated; no global fade or slide. */
+a,
+button,
+input,
+select,
+textarea,
+[role="button"],
+[data-slot="button"] {
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.15s ease;
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
 }
 
-/* Exclude motion elements where transition would look odd */
-[data-motion] {
-  transition: none !important;
+/* ─── The one intentional motion: a modal taking the screen ─── */
+@keyframes dock-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
+@keyframes dock-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
-/* ─── Custom scrollbar ─── */
+.dock-modal {
+  animation: dock-modal-in 160ms var(--ease-standard);
+}
+
+.dock-scrim {
+  animation: dock-scrim-in 120ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-modal,
+  .dock-scrim {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Utility surfaces ─── */
+.panel {
+  background: var(--sheet-white);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-panel);
+}
+
+.scroll-x-clean {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scroll-x-clean::-webkit-scrollbar {
+  display: none;
+}
+
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--wash);
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.60 0.01 250 / 40%);
+  background: var(--rule-strong);
+  border: 3px solid var(--wash);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.54 0.22 264 / 60%);
+  background: var(--graphite);
 }
 
-/* ─── Sidebar transition ─── */
+/* The sidebar width change is a layout move, not decoration. */
 .sidebar-transition {
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 200ms var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-transition {
+    transition: none;
+  }
 }

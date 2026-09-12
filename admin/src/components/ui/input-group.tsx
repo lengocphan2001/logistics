@@ -22,7 +22,7 @@ function InputGroupIcon({
     <span
       data-slot="input-group-icon"
       className={cn(
-        "pointer-events-none absolute left-3.5 z-10 flex size-4 items-center justify-center text-muted-foreground",
+        "pointer-events-none absolute left-3 z-10 flex size-4 items-center justify-center text-[var(--graphite)]",
         className
       )}
       {...props}
@@ -46,7 +46,7 @@ function InputGroupAction({
       type="button"
       data-slot="input-group-action"
       className={cn(
-        "absolute right-2 z-10 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-accent/60 hover:text-foreground",
+        "absolute right-2 z-10 flex size-8 items-center justify-center rounded-[var(--radius-control)] text-[var(--graphite)] hover:bg-[var(--wash)] hover:text-[var(--ink)]",
         className
       )}
       {...props}
@@ -62,7 +62,7 @@ function SearchInput({ className, ...props }: React.ComponentProps<typeof Input>
       <InputGroupIcon>
         <Search className="size-4" />
       </InputGroupIcon>
-      <InputGroupInput className={cn("pl-10", className)} {...props} />
+      <InputGroupInput className={cn("pl-9", className)} {...props} />
     </InputGroup>
   )
 }

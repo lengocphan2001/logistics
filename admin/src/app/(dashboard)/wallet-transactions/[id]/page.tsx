@@ -12,13 +12,15 @@ import {
   Wallet,
   XCircle,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { icon } from '@/lib/icon';
 import { Textarea } from '@/components/ui/textarea';
+import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { apiErrorMessage } from '@/lib/api-error';
 import {
   walletTransactionsService,
   type WalletTransaction,
@@ -37,7 +39,7 @@ import { orderTypeLabels } from '@/lib/order-type';
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-xs text-[var(--graphite)]">{label}</p>
       <div className="text-sm">{children}</div>
     </div>
   );
@@ -71,8 +73,8 @@ export default function WalletTransactionDetailPage() {
       await walletTransactionsService.approve(id);
       toast.success('Đã duyệt giao dịch');
       await loadTransaction();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Thao tác trên giao dịch thất bại'));
     } finally {
       setProcessing(false);
     }
@@ -90,8 +92,8 @@ export default function WalletTransactionDetailPage() {
       setRejectOpen(false);
       setRejectReason('');
       await loadTransaction();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Thao tác trên giao dịch thất bại'));
     } finally {
       setProcessing(false);
     }
@@ -106,7 +108,7 @@ export default function WalletTransactionDetailPage() {
   }
 
   if (!tx) {
-    return <div className="p-6 text-muted-foreground">Không tìm thấy giao dịch.</div>;
+    return <div className="p-6 text-[var(--graphite)]">Không tìm thấy giao dịch.</div>;
   }
 
   const credit = isWalletCredit(tx.type);
@@ -120,10 +122,10 @@ export default function WalletTransactionDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Quay lại danh sách
       </Link>
 
-      <div className="bg-card rounded-xl border border-border p-6 space-y-6">
+      <div className="bg-card rounded-[var(--radius-panel)] border border-border p-6 space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <p className="text-sm text-[var(--graphite)] flex items-center gap-1">
               <Wallet className="w-4 h-4" /> Mã giao dịch
             </p>
             <h1 className="text-2xl font-bold font-mono">{tx.code}</h1>
@@ -164,7 +166,7 @@ export default function WalletTransactionDetailPage() {
             <p
               className={cn(
                 'text-lg font-bold',
-                credit ? 'text-emerald-700 dark:text-emerald-400' : 'text-orange-700 dark:text-orange-400',
+                credit ? 'text-[var(--ledger-green)]' : 'text-[var(--ink)]',
               )}
             >
               {credit ? '+' : '−'}
@@ -211,7 +213,7 @@ export default function WalletTransactionDetailPage() {
             >
               {tx.customer.fullName}
             </Link>
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <p className="text-sm text-[var(--graphite)] flex items-center gap-1">
               <AtSign className="w-3.5 h-3.5" /> {tx.customer.username} · {tx.customer.phone}
             </p>
             {tx.customer.balance != null && (
@@ -231,7 +233,7 @@ export default function WalletTransactionDetailPage() {
             >
               {tx.order.billOfLadingCode}
             </Link>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-[var(--graphite)]">
               {orderTypeLabels[tx.order.type as keyof typeof orderTypeLabels] ?? tx.order.type}
               {' · '}
               {orderStatusLabels[tx.order.status as keyof typeof orderStatusLabels] ?? tx.order.status}
@@ -265,7 +267,7 @@ export default function WalletTransactionDetailPage() {
             {tx.processedBy ? (
               <>
                 <p className="font-medium">{tx.processedBy.name}</p>
-                <p className="text-xs text-muted-foreground">{tx.processedBy.email}</p>
+                <p className="text-xs text-[var(--graphite)]">{tx.processedBy.email}</p>
               </>
             ) : (
               '—'
@@ -277,38 +279,37 @@ export default function WalletTransactionDetailPage() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {rejectOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 space-y-4"
-            >
-              <h3 className="text-lg font-bold">Từ chối giao dịch</h3>
-              <div className="space-y-1.5">
-                <Label>Lý do từ chối</Label>
-                <Textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Nhập lý do..."
-                  rows={3}
-                  autoFocus
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={processing}>
-                  Hủy
-                </Button>
-                <Button variant="destructive" onClick={handleReject} disabled={processing}>
-                  {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Từ chối'}
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <Modal
+        open={rejectOpen}
+        onClose={() => setRejectOpen(false)}
+        title="Từ chối giao dịch"
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={processing}>
+              Huỷ
+            </Button>
+            <Button variant="destructive" onClick={handleReject} disabled={processing}>
+              {processing ? (
+                <Loader2 {...icon('inline')} aria-hidden className="animate-spin" />
+              ) : (
+                'Từ chối'
+              )}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-1.5 px-5 py-4">
+          <Label htmlFor="reject-reason">Lý do từ chối</Label>
+          <Textarea
+            id="reject-reason"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            rows={3}
+            autoFocus
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

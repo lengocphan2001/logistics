@@ -1,15 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, ImageOff } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { productsService, type ProductItem } from '@/services/products.service';
-import { cartService } from '@/services/cart.service';
-import { useCartStore } from '@/stores/cart.store';
-import { toast } from 'sonner';
+import { icon } from '@/lib/icon';
+import { useAddToCart } from '@/hooks/use-add-to-cart';
+import { type ProductItem } from '@/services/products.service';
+import { ProductImage } from '@/components/shop/ProductImage';
 import {
-  platformBadge,
+  platformLabel,
   ProductMetaRow,
   ProductPriceBlock,
 } from '@/components/shop/product-display.utils';
@@ -20,86 +19,52 @@ interface ProductCardProps {
   className?: string;
 }
 
+/**
+ * The tile has no frame of its own. The photograph sits on a white plate
+ * against the grey page, and the text hangs below it on the page ground —
+ * so the picture, not a border, is what separates one product from the next.
+ */
 export function ProductCard({ product, vndPerCny, className }: ProductCardProps) {
-  const invalidate = useCartStore((s) => s.invalidate);
-  const [imgError, setImgError] = useState(false);
-  const badge = platformBadge(product.platform);
+  const { addToCart, committed } = useAddToCart();
+  const platform = platformLabel(product.platform);
 
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    try {
-      await cartService.upsertItem({
-        itemId: product.itemId,
-        providerAlias: product.providerAlias,
-        title: product.title,
-        image: product.image || undefined,
-        url: product.url,
-        shopId: product.shopId || undefined,
-        shopName: product.shopName || undefined,
-        platform: product.platform,
-        priceCny: Number(product.priceCny) || 0,
-        quantity: 1,
-      });
-      invalidate();
-      toast.success('Đã thêm vào giỏ hàng');
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response
-        ?.data?.message;
-      toast.error(Array.isArray(msg) ? msg[0] : msg || 'Không thể thêm vào giỏ hàng');
-    }
+    void addToCart({
+      itemId: product.itemId,
+      providerAlias: product.providerAlias,
+      title: product.title,
+      image: product.image || undefined,
+      url: product.url,
+      shopId: product.shopId || undefined,
+      shopName: product.shopName || undefined,
+      platform: product.platform,
+      priceCny: Number(product.priceCny) || 0,
+      quantity: 1,
+    });
   };
 
-  const proxyUrl = product.image ? productsService.imageProxyUrl(product.image) : null;
-
   return (
-    <div
-      className={cn(
-        'group relative flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md',
-        className,
-      )}
-    >
-      <button
-        type="button"
-        onClick={handleAddToCart}
-        className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-sm transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 active:scale-95"
-        title="Thêm vào giỏ"
+    <article className={cn('group relative flex flex-col', className)}>
+      <Link
+        href={`/shop/${product.providerAlias}/${product.itemId}`}
+        className="flex flex-col outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)]"
       >
-        <ShoppingCart className="h-4 w-4" />
-      </button>
+        <div className="relative aspect-square w-full overflow-hidden bg-[var(--sheet-white)]">
+          <ProductImage src={product.image} alt={product.title} />
 
-      <Link href={`/shop/${product.providerAlias}/${product.itemId}`} className="flex flex-1 flex-col">
-        <div className="relative aspect-square w-full overflow-hidden bg-gray-50">
-          {badge && (
-            <span
-              className={cn(
-                'absolute left-2 top-2 z-10 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white',
-                badge.className,
-              )}
-            >
-              {badge.label}
+          {platform && (
+            <span className="absolute left-0 top-0 bg-[var(--manifest-navy)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              {platform}
             </span>
-          )}
-
-          {proxyUrl && !imgError ? (
-            <img
-              src={proxyUrl}
-              alt={product.title}
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-              loading="lazy"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <ImageOff className="h-10 w-10 text-gray-200" />
-            </div>
           )}
         </div>
 
-        <div className="flex flex-1 flex-col gap-2 p-3">
-          <p className="line-clamp-2 min-h-[2.5rem] text-sm leading-snug text-gray-800">
+        <div className="flex flex-1 flex-col gap-1.5 pt-2.5">
+          <h3 className="line-clamp-2 min-h-[2.6rem] text-[0.8125rem] font-medium leading-snug text-[var(--ink)] group-hover:underline group-hover:underline-offset-2">
             {product.title}
-          </p>
+          </h3>
 
           <ProductPriceBlock
             priceCny={Number(product.priceCny)}
@@ -111,6 +76,24 @@ export function ProductCard({ product, vndPerCny, className }: ProductCardProps)
           <ProductMetaRow rating={product.rating} soldCount={product.soldCount} />
         </div>
       </Link>
-    </div>
+
+      <button
+        type="button"
+        onClick={handleAddToCart}
+        aria-label={`Thêm ${product.title} vào giỏ hàng`}
+        className={cn(
+          'absolute right-2 top-2 z-10 flex size-9 items-center justify-center rounded-[var(--radius-control)] text-white outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)]',
+          committed
+            ? 'dock-commit bg-[var(--ledger-green)]'
+            : 'bg-[var(--seal-red)] hover:bg-[#8f0f1f]',
+        )}
+      >
+        {committed ? (
+          <Check {...icon('control')} aria-hidden />
+        ) : (
+          <Plus {...icon('control')} aria-hidden />
+        )}
+      </button>
+    </article>
   );
 }

@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Loader2 } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/stores/cart.store';
 import { useExchangeRate } from '@/hooks/use-exchange-rate';
-import { CartShopGroup, groupCartByShop } from '@/components/shop/CartShopGroup';
+import { CartShopGroup } from '@/components/shop/CartShopGroup';
+import { groupCartByShop } from '@/lib/cart-groups';
+import { PurchaseProgress } from '@/components/shop/PurchaseProgress';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState } from '@/components/ui/loading-state';
 import { cnyToVnd, formatCny, formatVnd } from '@/lib/currency';
 
 export default function CartPage() {
@@ -56,44 +59,43 @@ export default function CartPage() {
   };
 
   if (loading && !cart) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
-      </div>
-    );
+    return <LoadingState label="Đang tải giỏ hàng" />;
   }
 
   if (!cart || cart.items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-        <ShoppingBag className="mb-4 h-16 w-16 opacity-20" />
-        <h2 className="text-lg font-medium text-gray-700">Giỏ hàng trống</h2>
-        <p className="mt-1 max-w-sm text-center text-sm">
-          Giỏ hàng được lưu trên tài khoản của bạn — đăng nhập trên thiết bị khác vẫn thấy cùng
-          sản phẩm.
-        </p>
-        <Link
-          href="/shop"
-          className="mt-5 rounded-lg bg-amber-600 px-5 py-2 text-sm font-medium text-white hover:bg-amber-700"
-        >
-          Mua hàng ngay
-        </Link>
-      </div>
+      <EmptyState
+        icon={ShoppingBag}
+        title="Giỏ hàng trống"
+        hint="Giỏ hàng lưu trên tài khoản của bạn. Đăng nhập trên thiết bị khác vẫn thấy cùng sản phẩm."
+      >
+        <Button variant="commerce" onClick={() => router.push('/shop')}>
+          Bắt đầu mua hàng
+        </Button>
+      </EmptyState>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6 pb-4">
+      <div className="space-y-4 border-b border-[var(--rule)] pb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Giỏ hàng</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {cart.items.length} sản phẩm · {shopGroups.length} shop · đồng bộ theo tài khoản
+          <h1 className="text-xl font-bold text-[var(--ink)] sm:text-2xl">Giỏ hàng</h1>
+          <p className="mt-1 text-sm text-[var(--graphite)]">
+            <span data-numeric className="font-semibold text-[var(--ink)]">
+              {cart.items.length}
+            </span>{' '}
+            sản phẩm từ{' '}
+            <span data-numeric className="font-semibold text-[var(--ink)]">
+              {shopGroups.length}
+            </span>{' '}
+            shop
           </p>
         </div>
+        <PurchaseProgress current="Giỏ hàng" className="max-w-md" />
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         {shopGroups.map((group) => (
           <CartShopGroup
             key={group.shopKey}
@@ -121,25 +123,39 @@ export default function CartPage() {
         ))}
       </div>
 
-      <div className="sticky bottom-3 rounded-xl border border-amber-200 bg-white p-4 shadow-lg sm:bottom-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* The only element allowed to float, because it must stay reachable
+          while the list scrolls. */}
+      <div className="sticky bottom-3 border border-[var(--rule)] bg-[var(--sheet-white)] p-4 shadow-[var(--lift)] sm:bottom-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="text-sm text-gray-500">
-              Đã chọn {selectedItems.length} / {cart.items.length} sản phẩm
+            <p className="text-sm text-[var(--graphite)]">
+              Đã chọn{' '}
+              <span data-numeric className="font-semibold text-[var(--ink)]">
+                {selectedItems.length}
+              </span>{' '}
+              trên{' '}
+              <span data-numeric>{cart.items.length}</span> sản phẩm
             </p>
-            <p className="text-xl font-bold text-red-600 sm:text-2xl">{formatVnd(selectedTotalVnd)}</p>
-            <p className="text-sm text-gray-500">{formatCny(selectedTotalCny)}</p>
-            <p className="text-xs text-gray-400">* Chưa bao gồm phí vận chuyển & dịch vụ</p>
+            <p data-numeric className="text-2xl font-bold text-[var(--seal-red)]">
+              {formatVnd(selectedTotalVnd)}
+            </p>
+            <p data-numeric className="text-sm text-[var(--graphite)]">
+              {formatCny(selectedTotalCny)}
+            </p>
+            <p data-prose className="mt-1 text-xs">
+              Chưa gồm phí vận chuyển và dịch vụ.
+            </p>
           </div>
           <Button
+            variant="commerce"
             size="lg"
             disabled={selectedItems.length === 0}
-            className="w-full bg-amber-600 text-white hover:bg-amber-700 sm:w-auto sm:min-w-[180px]"
+            className="w-full sm:w-auto sm:min-w-[200px]"
             onClick={() =>
               router.push(`/checkout?items=${Array.from(selectedIds).join(',')}`)
             }
           >
-            Đặt hàng ({selectedItems.length})
+            Đặt hàng
           </Button>
         </div>
       </div>

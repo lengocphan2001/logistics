@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { portalConfig } from '@/config/portal.config';
 import { portalStatIcons } from '@/components/portal/icon-map';
+import { icon } from '@/lib/icon';
 import type { CustomerOrderStats } from '@/services/orders.service';
 
 type StatCardsProps = {
@@ -11,9 +11,14 @@ type StatCardsProps = {
   loading?: boolean;
 };
 
+/**
+ * Four counts in one strip. The number carries the weight; the icon is there
+ * to tell the four order types apart at a glance, and takes the same colour
+ * as the surrounding text.
+ */
 export function DashboardStatCards({ stats, loading }: StatCardsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+    <div className="grid grid-cols-2 gap-px overflow-hidden border border-[var(--rule)] bg-[var(--rule)] lg:grid-cols-4">
       {portalConfig.dashboard.statCards.map((card) => {
         const Icon = portalStatIcons[card.icon];
         const count = stats?.byType?.[card.type] ?? 0;
@@ -22,30 +27,19 @@ export function DashboardStatCards({ stats, loading }: StatCardsProps) {
           <Link
             key={card.type}
             href={`/orders?type=${card.type}`}
-            className={cn(
-              'group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md sm:p-5',
-              card.accent,
-            )}
+            className="group bg-[var(--sheet-white)] p-4 outline-none hover:bg-[var(--navy-wash)]/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--manifest-navy)] sm:p-5"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--portal-muted)]">
-                  {card.label}
-                </p>
-                <p className="mt-2 text-2xl font-bold text-[var(--portal-foreground)] sm:text-3xl">
-                  {loading ? '—' : count}
-                </p>
-                <p className="mt-0.5 text-xs text-[var(--portal-muted)]">{card.description}</p>
-              </div>
-              <div
-                className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105',
-                  card.iconClass,
-                )}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
+            <div className="flex items-center gap-2 text-[var(--graphite)]">
+              <Icon {...icon('inline')} aria-hidden />
+              <span className="text-sm font-medium text-[var(--ink)]">{card.label}</span>
             </div>
+            <p
+              data-numeric
+              className="mt-3 text-3xl font-bold text-[var(--ink)] sm:text-4xl"
+            >
+              {loading ? '—' : count}
+            </p>
+            <p className="mt-1 text-xs text-[var(--graphite)]">{card.description}</p>
           </Link>
         );
       })}

@@ -23,15 +23,37 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   DELIVERY_REQUESTED: 'Yêu cầu giao',
 };
 
+/**
+ * Colour states the class of the stage, the wording states the stage itself.
+ * Ten hues would be ten things to learn; three are enough to scan a list:
+ *
+ *   navy   — the order is moving
+ *   green  — money settled or the order is closed
+ *   red    — needs the customer or staff to act
+ *   grey   — inactive
+ *
+ * Within navy, an outline marks the first steps and a fill marks the later
+ * ones, so progress still reads at a glance.
+ */
 export const orderStatusBadgeColors: Record<OrderStatus, string> = {
-  CANCELLED: 'bg-stone-500/12 text-stone-700 border-stone-500/20',
-  DEPOSIT_PAID: 'bg-amber-500/12 text-amber-800 border-amber-500/25',
-  PURCHASED: 'bg-yellow-600/12 text-yellow-800 border-yellow-600/20',
-  SHOP_SHIPPED: 'bg-orange-500/12 text-orange-800 border-orange-500/20',
-  IN_TRANSIT_TO_VN: 'bg-amber-600/12 text-amber-900 border-amber-600/22',
-  AT_VN_WAREHOUSE: 'bg-stone-600/12 text-stone-800 border-stone-600/20',
-  PAID: 'bg-emerald-600/12 text-emerald-800 border-emerald-600/20',
-  COMPLETED: 'bg-green-600/12 text-green-800 border-green-600/20',
-  COMPLAINT: 'bg-red-500/12 text-red-800 border-red-500/20',
-  DELIVERY_REQUESTED: 'bg-orange-600/12 text-orange-900 border-orange-600/22',
+  CANCELLED:
+    'border-[var(--rule-strong)] bg-[var(--wash)] text-[var(--graphite)]',
+  DEPOSIT_PAID:
+    'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
+  PURCHASED:
+    'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
+  SHOP_SHIPPED:
+    'border-[var(--navy-wash)] bg-[var(--navy-wash)] text-[var(--manifest-navy)]',
+  IN_TRANSIT_TO_VN:
+    'border-[var(--navy-wash)] bg-[var(--navy-wash)] text-[var(--manifest-navy)]',
+  AT_VN_WAREHOUSE:
+    'border-[var(--manifest-navy)] bg-[var(--manifest-navy)] text-white',
+  DELIVERY_REQUESTED:
+    'border-[var(--manifest-navy)] bg-[var(--manifest-navy)] text-white',
+  PAID:
+    'border-[var(--green-wash)] bg-[var(--green-wash)] text-[var(--ledger-green)]',
+  COMPLETED:
+    'border-[var(--ledger-green)] bg-[var(--ledger-green)] text-white',
+  COMPLAINT:
+    'border-[var(--seal-red)] bg-[var(--red-wash)] text-[var(--seal-red)]',
 };

@@ -3,8 +3,9 @@
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { OPTIONAL_SERVICES } from '@/components/shop/checkout.constants';
+import { OPTIONAL_SERVICES } from '@/config/shop.config';
 import { formatVnd } from '@/lib/currency';
+import { icon } from '@/lib/icon';
 import { cn } from '@/lib/utils';
 
 interface CheckoutSummaryProps {
@@ -30,97 +31,100 @@ export function CheckoutSummary({
   submitting,
   onSubmit,
 }: CheckoutSummaryProps) {
-  const pendingLabel = 'Đang cập nhật';
+  const pendingLabel = 'Tính sau';
 
   return (
-    <aside className="space-y-4 lg:sticky lg:top-6">
-      <div className="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-5 py-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Tổng đơn</p>
-          <p className="mt-1 text-2xl font-bold text-orange-600">{formatVnd(grandTotalVnd)}</p>
-        </div>
-
-        <div className="space-y-2.5 px-5 py-4 text-sm">
-          <SummaryRow label="Tổng tiền hàng" value={formatVnd(goodsTotalVnd)} />
-          <SummaryRow label="Phí mua hàng" value={formatVnd(serviceFeeVnd)} muted />
-          <SummaryRow label="Phí ship nội địa TQ" value={pendingLabel} pending />
-          <SummaryRow label="Phí ship quốc tế TQ–VN" value={pendingLabel} pending />
-          <SummaryRow label="Phí ship nội địa VN" value={pendingLabel} pending />
-        </div>
-
-        <div className="border-t border-gray-100 px-5 py-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Dịch vụ tuỳ chọn
+    /* One panel, not three. Costs, options and the commit action belong to a
+       single decision, so they share a single frame. */
+    <aside className="lg:sticky lg:top-6 lg:self-start">
+      <div className="panel overflow-hidden">
+        <div className="border-b border-[var(--rule)] px-5 py-4">
+          <h2 className="font-heading text-base font-semibold text-[var(--ink)]">Tổng đơn</h2>
+          <p data-numeric className="mt-1 text-2xl font-bold text-[var(--seal-red)]">
+            {formatVnd(grandTotalVnd)}
           </p>
+        </div>
+
+        <dl className="space-y-2.5 px-5 py-4 text-sm">
+          <SummaryRow label="Tiền hàng" value={formatVnd(goodsTotalVnd)} />
+          <SummaryRow label="Phí mua hộ" value={formatVnd(serviceFeeVnd)} />
+          <SummaryRow label="Ship nội địa Trung Quốc" value={pendingLabel} pending />
+          <SummaryRow label="Ship quốc tế Trung Việt" value={pendingLabel} pending />
+          <SummaryRow label="Ship nội địa Việt Nam" value={pendingLabel} pending />
+        </dl>
+
+        <div className="border-t border-[var(--rule)] px-5 py-4">
+          <h3 className="mb-3 text-sm font-semibold text-[var(--ink)]">Dịch vụ tuỳ chọn</h3>
           <div className="space-y-2.5">
-            {OPTIONAL_SERVICES.map((svc) => {
-              const checked = !!services[svc.id];
-              return (
-                <div key={svc.id} className="flex items-center justify-between gap-2">
-                  <label className="flex cursor-pointer items-center gap-2.5">
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(v) => onServiceToggle(svc.id, v === true)}
-                    />
-                    <span className="text-sm text-gray-700">{svc.label}</span>
-                  </label>
-                  <span className="shrink-0 text-xs text-gray-400">
-                    {checked ? 'Đã chọn' : 'Không yêu cầu'}
-                  </span>
-                </div>
-              );
-            })}
+            {OPTIONAL_SERVICES.map((svc) => (
+              <label
+                key={svc.id}
+                className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--graphite)]"
+              >
+                <Checkbox
+                  checked={!!services[svc.id]}
+                  onCheckedChange={(v) => onServiceToggle(svc.id, v === true)}
+                />
+                {svc.label}
+              </label>
+            ))}
           </div>
-          <p className="mt-3 text-[11px] leading-relaxed text-gray-400">
-            Các khoản &quot;Đang cập nhật&quot; sẽ được tính sau khi hàng về kho VN theo cân nặng thực
-            tế và bảng giá dịch vụ.
+          <p data-prose className="mt-3 text-xs">
+            Khoản ghi “Tính sau” được chốt khi hàng về kho Việt Nam, theo cân nặng
+            thực tế và bảng giá dịch vụ.
           </p>
         </div>
-      </div>
 
-      <div className="rounded-xl border border-gray-200/80 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-baseline justify-between gap-2">
-          <span className="text-sm font-bold uppercase tracking-wide text-gray-800">
-            Tổng tiền
-          </span>
-          <span className="text-xl font-bold text-gray-900">{formatVnd(grandTotalVnd)}</span>
-        </div>
+        <div className="border-t border-[var(--rule)] bg-[var(--wash)]/60 px-5 py-4">
+          <div className="mb-4 flex items-baseline justify-between gap-2">
+            <span className="text-sm font-semibold text-[var(--ink)]">Phải trả hôm nay</span>
+            <span data-numeric className="text-xl font-bold text-[var(--ink)]">
+              {formatVnd(grandTotalVnd)}
+            </span>
+          </div>
 
-        <label className="mb-4 flex cursor-pointer items-start gap-2.5">
-          <Checkbox
-            checked={agreed}
-            onCheckedChange={(v) => onAgreedChange(v === true)}
-            className="mt-0.5"
-          />
-          <span className="text-sm leading-snug text-gray-600">
-            Tôi đồng ý với{' '}
-            <a href="/terms" className="text-sky-600 hover:underline">
-              các điều khoản
-            </a>{' '}
-            mua hộ và vận chuyển
-          </span>
-        </label>
+          <label className="mb-3 flex cursor-pointer items-start gap-2.5">
+            <Checkbox
+              checked={agreed}
+              onCheckedChange={(v) => onAgreedChange(v === true)}
+              className="mt-0.5"
+            />
+            <span className="text-sm leading-snug text-[var(--graphite)]">
+              Tôi đồng ý với{' '}
+              <a
+                href="/terms"
+                className="font-medium text-[var(--manifest-navy)] underline underline-offset-2"
+              >
+                điều khoản
+              </a>{' '}
+              mua hộ và vận chuyển
+            </span>
+          </label>
 
-        {!agreed && (
-          <p className="mb-3 text-xs text-red-500">Vui lòng xác nhận trước khi hoàn tất</p>
-        )}
+          <Button
+            type="button"
+            variant="commerce"
+            size="lg"
+            disabled={!agreed || submitting}
+            onClick={onSubmit}
+            className="w-full"
+          >
+            {submitting ? (
+              <>
+                <Loader2 {...icon('inline')} aria-hidden className="animate-spin" />
+                Đang xử lý
+              </>
+            ) : (
+              'Xác nhận đặt hàng'
+            )}
+          </Button>
 
-        <Button
-          type="button"
-          size="lg"
-          disabled={!agreed || submitting}
-          onClick={onSubmit}
-          className="w-full bg-sky-600 text-base font-semibold hover:bg-sky-700"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Đang xử lý...
-            </>
-          ) : (
-            'Hoàn thành'
+          {!agreed && (
+            <p className="mt-2 text-center text-xs text-[var(--graphite)]">
+              Xác nhận điều khoản để tiếp tục
+            </p>
           )}
-        </Button>
+        </div>
       </div>
     </aside>
   );
@@ -129,27 +133,24 @@ export function CheckoutSummary({
 function SummaryRow({
   label,
   value,
-  muted,
   pending,
 }: {
   label: string;
   value: string;
-  muted?: boolean;
   pending?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-gray-600">{label}</span>
-      <span
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-[var(--graphite)]">{label}</dt>
+      <dd
+        data-numeric
         className={cn(
-          'font-medium',
-          pending && 'text-gray-400 italic',
-          muted && !pending && 'text-gray-700',
-          !muted && !pending && 'text-gray-900',
+          'font-semibold',
+          pending ? 'text-[var(--graphite)]/70' : 'text-[var(--ink)]',
         )}
       >
         {value}
-      </span>
+      </dd>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, User } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { apiErrorMessage } from '@/lib/api-error';
 import { toast } from 'sonner';
 import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
 import { Button } from '@/components/ui/button';
@@ -91,8 +92,8 @@ export default function ProfilePage() {
       const p = res.data as CustomerProfile;
       updateUser({ name: p.name, email: p.email || undefined });
       toast.success('Đã cập nhật hồ sơ');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Cập nhật thất bại');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Cập nhật thất bại'));
     } finally {
       setSubmitting(false);
     }
@@ -112,12 +113,11 @@ export default function ProfilePage() {
         eyebrow="Tài khoản"
         title="Hồ sơ cá nhân"
         description="Cập nhật thông tin nhận hàng và tài khoản ngân hàng"
-        icon={<User className="h-6 w-6 text-[var(--brand-accent)]" />}
       />
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 rounded-2xl border border-[var(--portal-border)] bg-white p-4 shadow-sm sm:p-6"
+        className="space-y-4 rounded-[var(--radius-panel)] border border-[var(--rule)] bg-[var(--sheet-white)] p-4  sm:p-6"
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -200,7 +200,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-[var(--portal-border)] bg-[var(--brand-surface-muted)]/30 p-4 space-y-3">
+        <div className="rounded-[var(--radius-panel)] border border-[var(--rule)] bg-[var(--wash)]/30 p-4 space-y-3">
           <p className="text-sm font-semibold">Thông tin ngân hàng (rút tiền)</p>
           <div className="space-y-1.5">
             <Label>Tên ngân hàng</Label>

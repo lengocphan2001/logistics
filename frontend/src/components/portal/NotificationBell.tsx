@@ -8,6 +8,7 @@ import { vi } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { icon } from '@/lib/icon';
 import { notificationsService, type Notification } from '@/services/notifications.service';
 import { useNotifications } from '@/hooks/use-notifications';
 
@@ -35,12 +36,19 @@ export function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--portal-border)] bg-white/70 text-[var(--portal-muted)] hover:bg-white hover:text-[var(--portal-foreground)] sm:h-9 sm:w-9"
+        className="relative flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--graphite)] hover:bg-[var(--wash)] hover:text-[var(--ink)]"
         aria-label="Thông báo"
       >
-        <Bell className={cn('h-4 w-4', ring && 'animate-bounce text-[var(--brand-accent)]')} />
+        <Bell
+          {...icon('control')}
+          aria-hidden
+          className={cn(ring && 'text-[var(--manifest-navy)]')}
+        />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span
+            data-numeric
+            className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--seal-red)] px-1 text-[10px] font-bold text-white"
+          >
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -55,7 +63,7 @@ export function NotificationBell() {
               className="h-7 px-2 text-xs"
               onClick={handleMarkAllRead}
             >
-              <CheckCheck className="w-3.5 h-3.5 mr-1" />
+              <CheckCheck {...icon('inline')} aria-hidden className="size-3.5" />
               Đọc tất cả
             </Button>
           )}

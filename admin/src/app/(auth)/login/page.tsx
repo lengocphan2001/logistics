@@ -1,11 +1,10 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, Loader2, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +13,14 @@ import { Label } from '@/components/ui/label';
 import { loginSchema, type LoginInput } from '@/lib/validations';
 import { useAuthStore } from '@/stores/auth.store';
 import api from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api-error';
+import { icon } from '@/lib/icon';
+
+const capabilities = [
+  'Quản lý đơn hàng theo thời gian thực',
+  'Theo dõi hành trình từ kho Trung Quốc về Việt Nam',
+  'Đối soát phí, ví khách hàng và công nợ',
+];
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -30,79 +37,58 @@ export default function LoginPage() {
     try {
       const response = await api.post('/auth/login', data);
       const { user, token } = response.data;
-      
+
       login(user, token);
-      toast.success('Đăng nhập thành công!');
+      toast.success('Đăng nhập thành công');
       router.push('/dashboard');
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Email hoặc mật khẩu không đúng';
-      toast.error(message);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Email hoặc mật khẩu không đúng'));
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Left panel — branding (luôn tối, không phụ thuộc theme) */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[oklch(0.22_0.045_264)] text-white">
-        {/* Background grid */}
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              'linear-gradient(oklch(1 0 0 / 8%) 1px, transparent 1px), linear-gradient(90deg, oklch(1 0 0 / 8%) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-          }}
-        />
-        {/* Glow orb */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/30 rounded-full blur-3xl" />
+    <div className="flex min-h-screen bg-[var(--dock-grey)]">
+      {/* Two panels split by a straight edge: navy states who this is for,
+          white holds the form. No glow, no grid, no entry animation. */}
+      <div
+        data-chrome
+        className="relative hidden bg-[var(--manifest-navy)] lg:flex lg:w-[42%]"
+      >
+        <div className="relative z-10 flex w-full flex-col justify-center px-14">
+          <span className="font-heading text-[1.0625rem] font-bold tracking-[-0.02em] text-white">
+            Logistics Admin
+          </span>
 
-        <div className="relative z-10 flex flex-col justify-center px-16 w-full">
-          <div className="flex items-center gap-3 mb-16">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary">
-              <Zap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-xl text-white">Logistics Admin</span>
-          </div>
-
-          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-            Quản lý vận chuyển<br />
-            <span className="text-primary-foreground/90">thông minh hơn.</span>
+          <h2 className="mt-14 max-w-md text-4xl font-bold leading-tight text-white">
+            Quản trị toàn bộ chuỗi vận chuyển
           </h2>
-          <p className="text-white/75 text-lg leading-relaxed max-w-sm">
-            Nền tảng quản trị logistics hiện đại — theo dõi, điều phối và tối ưu toàn bộ chuỗi vận chuyển.
+          <p className="mt-4 max-w-sm text-base leading-relaxed text-white/80">
+            Theo dõi, điều phối và đối soát đơn hàng giữa Trung Quốc và Việt Nam
+            trên một hệ thống.
           </p>
 
-          {/* Feature list */}
           <ul className="mt-10 space-y-3">
-            {['Quản lý đơn hàng realtime', 'Theo dõi GPS tài xế', 'Báo cáo & phân tích thông minh'].map((f) => (
-              <li key={f} className="flex items-center gap-3 text-white/80 text-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                {f}
+            {capabilities.map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm text-white/80">
+                <span aria-hidden className="mt-2 size-1 shrink-0 bg-white/60" />
+                {item}
               </li>
             ))}
           </ul>
         </div>
       </div>
 
-      {/* Right panel — login form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="w-full max-w-sm"
-        >
-          {/* Mobile logo */}
-          <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
-              <Zap className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-foreground">Logistics Admin</span>
-          </div>
+      <div className="flex flex-1 items-center justify-center p-6 sm:p-8">
+        <div className="w-full max-w-sm">
+          <p className="mb-8 font-heading text-base font-bold text-[var(--ink)] lg:hidden">
+            Logistics Admin
+          </p>
 
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-foreground mb-1">Đăng nhập</h1>
-            <p className="text-muted-foreground text-sm">Nhập thông tin tài khoản admin của bạn</p>
+          <div className="mb-7 border-b border-[var(--rule)] pb-5">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Đăng nhập</h1>
+            <p className="mt-1 text-sm text-[var(--graphite)]">
+              Nhập thông tin tài khoản quản trị của bạn.
+            </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" id="login-form">
@@ -111,13 +97,12 @@ export default function LoginPage() {
               <Input
                 id="login-email"
                 type="email"
-                placeholder="admin@logistics.vn"
                 autoComplete="email"
+                aria-invalid={!!errors.email}
                 {...register('email')}
-                className={errors.email ? 'border-destructive focus-visible:ring-destructive/30' : ''}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
+                <p className="text-xs text-[var(--seal-red)]">{errors.email.message}</p>
               )}
             </div>
 
@@ -127,9 +112,9 @@ export default function LoginPage() {
                 <InputGroupInput
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
                   autoComplete="current-password"
-                  className={`pr-11 ${errors.password ? 'border-destructive focus-visible:ring-destructive/30' : ''}`}
+                  aria-invalid={!!errors.password}
+                  className="pl-3 pr-11"
                   {...register('password')}
                 />
                 <InputGroupAction
@@ -137,11 +122,15 @@ export default function LoginPage() {
                   id="login-toggle-password"
                   aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff {...icon('inline')} aria-hidden />
+                  ) : (
+                    <Eye {...icon('inline')} aria-hidden />
+                  )}
                 </InputGroupAction>
               </InputGroup>
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
+                <p className="text-xs text-[var(--seal-red)]">{errors.password.message}</p>
               )}
             </div>
 
@@ -154,15 +143,15 @@ export default function LoginPage() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Đang đăng nhập...
+                  <Loader2 {...icon('inline')} aria-hidden className="animate-spin" />
+                  Đang đăng nhập
                 </>
               ) : (
                 'Đăng nhập'
               )}
             </Button>
           </form>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
