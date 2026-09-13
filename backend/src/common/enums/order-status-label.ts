@@ -7,10 +7,13 @@ import { OrderStatus } from '@prisma/client';
  */
 export const orderStatusLabels: Record<OrderStatus, string> = {
   NEW_REQUEST: 'Yêu cầu mới',
+  QUOTED: 'Đã báo giá, chờ khách duyệt',
   CANCELLED: 'Đã hủy',
-  DEPOSIT_PAID: 'Đặt cọc',
+  DEPOSIT_PAID: 'Đã thu tiền hàng',
+  AWAITING_CN_ARRIVAL: 'Chờ hàng về kho Trung Quốc',
   PURCHASED: 'Đã mua hàng',
   SHOP_SHIPPED: 'Shop phát hàng',
+  AT_CN_WAREHOUSE: 'Đã về kho Trung Quốc',
   IN_TRANSIT_TO_VN: 'Đang về Việt Nam',
   AT_VN_WAREHOUSE: 'Về kho Việt Nam',
   PAID: 'Đã thanh toán',

@@ -21,16 +21,27 @@ enum WarehouseCountry {
 
 enum OrderStatus {
   NEW_REQUEST
+  QUOTED
   CANCELLED
   DEPOSIT_PAID
+  AWAITING_CN_ARRIVAL
   PURCHASED
   SHOP_SHIPPED
+  AT_CN_WAREHOUSE
   IN_TRANSIT_TO_VN
   AT_VN_WAREHOUSE
   PAID
   COMPLETED
   COMPLAINT
   DELIVERY_REQUESTED
+}
+
+enum OrderItemStatus {
+  PENDING        // Chưa mua
+  PURCHASED      // Đã mua đúng yêu cầu
+  OUT_OF_STOCK   // Hết hàng, không mua được
+  PRICE_CHANGED  // Mua được nhưng giá khác giá báo
+  REFUNDED       // Đã hoàn tiền dòng này
 }
 
 enum PaymentStatus {
@@ -96,8 +107,9 @@ model User {
   warehouseId String?
   warehouse   Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
 
-  ordersAsCreator Order[] @relation("OrderCreator")
-  ordersAsDriver  Order[] @relation("OrderDriver")
+  ordersAsCreator  Order[] @relation("OrderCreator")
+  ordersAsDriver   Order[] @relation("OrderDriver")
+  ordersAssigned   Order[] @relation("OrderAssignee")
 
   walletTransactionsCreated  WalletTransaction[] @relation("WalletTransactionCreator")
   walletTransactionsProcessed WalletTransaction[] @relation("WalletTransactionProcessor")
@@ -115,7 +127,8 @@ model Warehouse {
   address   String
   country   WarehouseCountry @default(VN)
   users     User[]
-  orders    Order[]
+  orders    Order[]           @relation("OrderWarehouse")
+  cnOrders  Order[]           @relation("OrderCnWarehouse")
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -197,8 +210,18 @@ model Order {
   driverId String?
   driver   User?   @relation("OrderDriver", fields: [driverId], references: [id], onDelete: SetNull)
 
+  /** Nhân viên đang phụ trách xử lý đơn. */
+  assignedToId String?
+  assignedTo   User?     @relation("OrderAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedAt   DateTime?
+
+  /** Kho Việt Nam giao cho khách. */
   warehouseId String?
-  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  warehouse   Warehouse? @relation("OrderWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
+
+  /** Kho Trung Quốc tiếp nhận hàng trước khi xuất về Việt Nam. */
+  cnWarehouseId String?
+  cnWarehouse   Warehouse? @relation("OrderCnWarehouse", fields: [cnWarehouseId], references: [id], onDelete: SetNull)
 
   // --- Taobao/1688 aggregator fields ---
   platform      String?  // 'taobao' | '1688' | 'alibaba' ...
@@ -211,6 +234,15 @@ model Order {
   sourceTrackingCode String? // Mã vận đơn nội địa Trung Quốc (ký gửi)
   sourceOrderCode    String? // Mã đơn trên sàn (thanh toán hộ)
 
+  // --- Nhân viên ghi lại sau khi mua thật trên sàn ---
+  purchaseOrderCode String? // Mã đơn nhân viên mua được trên sàn
+
+  // --- Báo giá ---
+  quotedAt        DateTime?
+  quoteExpiresAt  DateTime?
+  quoteApprovedAt DateTime?
+  quoteNote       String?
+
   events OrderEvent[]
   walletTransactions WalletTransaction[]
   items  OrderItem[]
@@ -222,6 +254,7 @@ model Order {
   @@index([status])
   @@index([type])
   @@index([createdAt])
+  @@index([assignedToId])
   @@map("orders")
 }
 
@@ -253,6 +286,10 @@ model OrderItem {
   url            String?
 
   properties     Json?   // [{ name, value }]
+
+  status            OrderItemStatus @default(PENDING)
+  purchasedPriceCny Decimal?        @db.Decimal(18, 2) // Giá mua thực tế, nếu khác giá báo
+  statusNote        String?
 
   createdAt DateTime @default(now())
 

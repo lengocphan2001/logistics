@@ -1,9 +1,12 @@
 export type OrderStatus =
   | 'NEW_REQUEST'
+  | 'QUOTED'
   | 'CANCELLED'
   | 'DEPOSIT_PAID'
+  | 'AWAITING_CN_ARRIVAL'
   | 'PURCHASED'
   | 'SHOP_SHIPPED'
+  | 'AT_CN_WAREHOUSE'
   | 'IN_TRANSIT_TO_VN'
   | 'AT_VN_WAREHOUSE'
   | 'PAID'
@@ -13,9 +16,12 @@ export type OrderStatus =
 
 export const ORDER_STATUSES: OrderStatus[] = [
   'NEW_REQUEST',
+  'QUOTED',
   'DEPOSIT_PAID',
+  'AWAITING_CN_ARRIVAL',
   'PURCHASED',
   'SHOP_SHIPPED',
+  'AT_CN_WAREHOUSE',
   'IN_TRANSIT_TO_VN',
   'AT_VN_WAREHOUSE',
   'PAID',
@@ -27,10 +33,13 @@ export const ORDER_STATUSES: OrderStatus[] = [
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
   NEW_REQUEST: 'Yêu cầu mới',
+  QUOTED: 'Đã báo giá, chờ khách duyệt',
   CANCELLED: 'Đã hủy',
-  DEPOSIT_PAID: 'Đặt cọc',
+  DEPOSIT_PAID: 'Đã thu tiền hàng',
+  AWAITING_CN_ARRIVAL: 'Chờ hàng về kho Trung Quốc',
   PURCHASED: 'Đã mua hàng',
   SHOP_SHIPPED: 'Shop phát hàng',
+  AT_CN_WAREHOUSE: 'Đã về kho Trung Quốc',
   IN_TRANSIT_TO_VN: 'Đang về Việt Nam',
   AT_VN_WAREHOUSE: 'Về kho Việt Nam',
   PAID: 'Đã thanh toán',
@@ -54,6 +63,11 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
 export const orderStatusBadgeColors: Record<OrderStatus, string> = {
   NEW_REQUEST:
     'border-[var(--seal-red)] bg-transparent text-[var(--seal-red)]',
+  QUOTED: 'border-[var(--seal-red)] bg-[var(--red-wash)] text-[var(--seal-red)]',
+  AWAITING_CN_ARRIVAL:
+    'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
+  AT_CN_WAREHOUSE:
+    'border-[var(--navy-wash)] bg-[var(--navy-wash)] text-[var(--manifest-navy)]',
   CANCELLED: 'border-[var(--rule-strong)] bg-[var(--wash)] text-[var(--graphite)]',
   DEPOSIT_PAID: 'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
   PURCHASED: 'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
@@ -69,6 +83,9 @@ export const orderStatusBadgeColors: Record<OrderStatus, string> = {
 /** Fill used in the dashboard status bar. Same four classes as the badges. */
 export const orderStatusBarColors: Record<OrderStatus, string> = {
   NEW_REQUEST: 'bg-[var(--seal-red)]',
+  QUOTED: 'bg-[var(--seal-red)]',
+  AWAITING_CN_ARRIVAL: 'bg-[var(--navy-wash)]',
+  AT_CN_WAREHOUSE: 'bg-[#4a7ba8]',
   CANCELLED: 'bg-[var(--rule-strong)]',
   DEPOSIT_PAID: 'bg-[var(--navy-wash)]',
   PURCHASED: 'bg-[var(--navy-wash)]',
@@ -83,8 +100,11 @@ export const orderStatusBarColors: Record<OrderStatus, string> = {
 
 /** Đơn đang trong quá trình vận chuyển / xử lý */
 export const inProgressStatuses: OrderStatus[] = [
+  'AWAITING_CN_ARRIVAL',
   'PURCHASED',
+  'AT_CN_WAREHOUSE',
   'SHOP_SHIPPED',
+  'AT_CN_WAREHOUSE',
   'IN_TRANSIT_TO_VN',
   'AT_VN_WAREHOUSE',
   'PAID',

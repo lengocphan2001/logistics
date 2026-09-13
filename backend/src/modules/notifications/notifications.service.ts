@@ -225,6 +225,53 @@ export class NotificationsService {
   }
 
   /**
+   * Anything on an order that staff, not the customer, need to hear about: a
+   * quote turned down, a request cancelled. Goes to every active ADMIN and
+   * SALES user, and to the assignee even if their role is not one of those.
+   */
+  async notifyStaffAboutOrder(
+    order: OrderForNotification & { assignedToId?: string | null },
+    title: string,
+    message: string,
+  ) {
+    const staffUsers = await this.prisma.user.findMany({
+      where: {
+        status: 'ACTIVE',
+        OR: [
+          { role: { in: ORDER_STAFF_ROLES } },
+          ...(order.assignedToId ? [{ id: order.assignedToId }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (staffUsers.length === 0) return;
+
+    const rows = staffUsers.map((user) => ({
+      recipientType: NotificationRecipientType.USER,
+      recipientId: user.id,
+      type: NotificationType.ORDER_STATUS_UPDATED,
+      title,
+      message,
+      link: `/orders/${order.id}`,
+      orderId: order.id,
+    }));
+
+    await this.prisma.notification.createMany({ data: rows });
+
+    const created = await this.prisma.notification.findMany({
+      where: {
+        orderId: order.id,
+        type: NotificationType.ORDER_STATUS_UPDATED,
+        recipientType: NotificationRecipientType.USER,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: rows.length,
+    });
+    this.emitMany(created);
+  }
+
+  /**
    * Sent to the customer when staff move an order to a new status. Orders
    * without a customer account (walk-in) have nobody to notify.
    */

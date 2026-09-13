@@ -16,11 +16,16 @@ import { CustomerAccountGuard } from '../../common/guards/customer-account.guard
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CheckoutDto } from './dto/checkout.dto';
 import { CreateCustomerOrderDto } from './dto/create-customer-order.dto';
+import { OrderWorkflowService } from './order-workflow.service';
+import { CancelRequestDto, RejectQuoteDto } from './dto/order-actions.dto';
 
 @Controller('customer/orders')
 @UseGuards(JwtAuthGuard, CustomerAccountGuard)
 export class CustomerOrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly workflow: OrderWorkflowService,
+  ) {}
 
   @Get('stats')
   getStats(@CurrentUser() user: { id: string }) {
@@ -57,6 +62,37 @@ export class CustomerOrdersController {
     @Body() dto: CreateCustomerOrderDto,
   ) {
     return this.ordersService.createCustomerRequest(user.id, dto);
+  }
+
+  /** Duyệt báo giá: tiền hàng được trừ khỏi ví ngay tại đây. */
+  @Post(':id/approve-quote')
+  approveQuote(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.workflow.approveQuote(user.id, id);
+  }
+
+  @Post(':id/reject-quote')
+  rejectQuote(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body() dto: RejectQuoteDto,
+  ) {
+    return this.workflow.rejectQuote(user.id, id, dto);
+  }
+
+  /** Khách tự huỷ khi đơn chưa được xử lý. */
+  @Post(':id/cancel')
+  cancel(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body() dto: CancelRequestDto,
+  ) {
+    return this.workflow.cancelByCustomer(user.id, id, dto);
+  }
+
+  /** Số tiền đã trả và còn phải trả của đơn. */
+  @Get(':id/summary')
+  summary(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.workflow.summaryForCustomer(user.id, id);
   }
 
   @Get(':id')

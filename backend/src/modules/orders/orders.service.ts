@@ -14,7 +14,9 @@ import {
 import { PrismaService } from '../../database/prisma.service';
 import { needsSourceProperties } from '../products/sku-properties.util';
 import { NotificationsService } from '../notifications/notifications.service';
-import { orderStatusLabels } from '../../common/enums/order-status-label';
+import { orderTypeLabels } from '../../common/enums/order-type-label';
+import { ORDER_INCLUDE } from './order-include';
+import { assertTransition, flowFor, statusLabelFor } from './order-workflow';
 import type { CreateCustomerOrderDto } from './dto/create-customer-order.dto';
 import { WalletTransactionsService } from '../wallet-transactions/wallet-transactions.service';
 import { ProductsService } from '../products/products.service';
@@ -24,17 +26,6 @@ import {
   ChargeOrderWalletDto,
   RefundOrderWalletDto,
 } from './dto/charge-order-wallet.dto';
-
-const ORDER_INCLUDE = {
-  customer: {
-    select: { id: true, fullName: true, phone: true, username: true },
-  },
-  createdBy: { select: { id: true, name: true, email: true } },
-  driver: { select: { id: true, name: true, email: true } },
-  warehouse: { select: { id: true, name: true, code: true } },
-  events: { orderBy: { createdAt: 'desc' as const }, take: 10 },
-  items: { orderBy: { createdAt: 'asc' as const } },
-};
 
 @Injectable()
 export class OrdersService {
@@ -78,9 +69,14 @@ export class OrdersService {
 
     const totalFee = (feeTransfer ?? 0) + (feeInsurance ?? 0) + (feeExtra ?? 0);
 
+    // Each type starts at its own first step. A consignment that opened at
+    // DEPOSIT_PAID would be sitting on a status its own flow never contains.
+    const initialStatus = flowFor(type)[0];
+
     return this.prisma.order.create({
       data: {
         type,
+        status: initialStatus,
         senderName,
         senderPhone,
         senderAddress,
@@ -113,7 +109,7 @@ export class OrdersService {
         warehouseId,
         events: {
           create: {
-            status: OrderStatus.DEPOSIT_PAID,
+            status: initialStatus,
             note: 'Đơn hàng được tạo',
           },
         },
@@ -248,16 +244,18 @@ export class OrdersService {
         createdById: userId,
       });
 
+    // Money and progress are separate facts. Taking a payment says nothing
+    // about where the parcel is, so this no longer rewrites the status: the
+    // workflow endpoints own that, and only they can move an order backwards
+    // by accident if this did.
     const orderUpdate: Prisma.OrderUpdateInput = {};
 
     if (dto.type === WalletTransactionType.ORDER_DEPOSIT) {
       orderUpdate.depositAmount = { increment: dto.amount };
-      orderUpdate.status = OrderStatus.DEPOSIT_PAID;
     } else {
       orderUpdate.walletPaidAmount = { increment: dto.amount };
       orderUpdate.paymentStatus = PaymentStatus.PAID;
       orderUpdate.paymentMethod = PaymentMethod.BALANCE;
-      orderUpdate.status = OrderStatus.PAID;
     }
 
     const updatedOrder = await this.prisma.order.update({
@@ -304,6 +302,11 @@ export class OrdersService {
     const { status, eventNote, eventLocation, estimatedDelivery, ...rest } =
       updateOrderDto;
 
+    const type = rest.type ?? order.type;
+    if (status) {
+      assertTransition(type, order.status, status, orderTypeLabels[type]);
+    }
+
     const feeTransfer = rest.feeTransfer ?? Number(order.feeTransfer);
     const feeInsurance = rest.feeInsurance ?? Number(order.feeInsurance);
     const feeExtra = rest.feeExtra ?? Number(order.feeExtra);
@@ -340,7 +343,7 @@ export class OrdersService {
     if (status && status !== order.status) {
       await this.notificationsService.notifyOrderStatusChange(
         updated,
-        orderStatusLabels[status],
+        statusLabelFor(type, status),
       );
     }
 
