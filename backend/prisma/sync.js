@@ -19,6 +19,7 @@
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const { PrismaClient } = require('@prisma/client');
 
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
