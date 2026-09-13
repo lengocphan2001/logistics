@@ -19,6 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "deploy": "npm run db:sync && npm run build",
     "db:sync": "node prisma/sync.js",
     "prisma:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

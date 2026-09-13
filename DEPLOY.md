@@ -126,8 +126,7 @@ CORS_ORIGINS="https://tamanlogistics.vn,https://www.tamanlogistics.vn,https://ad
 Cài đặt dependencies, đồng bộ schema Prisma và build dự án:
 ```bash
 npm install              # Cài đủ deps để build (gồm prisma, typescript)
-npm run db:sync          # Đồng bộ database về đúng schema hiện tại
-npm run build            # Build NestJS + compile seed (dist/prisma/seed.js)
+npm run deploy           # Đồng bộ database rồi build (db:sync + build)
 npm run prisma:seed      # Nạp tài khoản admin mặc định (chạy sau build)
 npm prune --omit=dev     # (Tùy chọn) Gỡ devDependencies sau khi build xong
 cd ..
@@ -140,7 +139,11 @@ cd ..
 > xoá cột hay đụng vào dữ liệu nghiệp vụ. Dùng lệnh này thay cho `prisma db push`
 > ở mọi môi trường. Khi sửa `schema.prisma` thì chạy
 > `npm run db:migrate -- --name ten_thay_doi` để sinh migration, rồi commit thư
-> mục migration đó; các môi trường khác chỉ cần `npm run db:sync`.
+> mục migration đó; các môi trường khác chỉ cần `npm run deploy`.
+>
+> `npm run deploy` = `db:sync` rồi `build`. Chạy `npm run build` một mình sẽ
+> **không** đồng bộ database: hook `prebuild` chỉ sinh lại Prisma Client từ file
+> schema, không kết nối database.
 
 > **Lưu ý `prisma:seed`**: Script dùng `node dist/prisma/seed.js`, **không** dùng `ts-node`. Phải chạy `npm run build` trước `npm run prisma:seed`. Trên máy dev local: `npm run prisma:seed:dev` nếu chưa build.
 
@@ -228,7 +231,7 @@ module.exports = {
 Khởi chạy ứng dụng với PM2:
 ```bash
 # Đảm bảo backend đã build (tạo dist/src/main.js)
-cd /var/www/logistics/backend && npm run db:sync && npm run build && cd ..
+cd /var/www/logistics/backend && npm run deploy && cd ..
 
 pm2 start ecosystem.config.js
 # Hoặc nếu đã chạy rồi:
@@ -309,7 +312,7 @@ server {
 
 Nếu vẫn lỗi CORS sau khi deploy code mới:
 1. Thêm vào `backend/.env`: `CORS_ORIGINS=https://tamanlogistics.vn,https://www.tamanlogistics.vn,https://admin.tamanlogistics.vn`
-2. `cd backend && npm run db:sync && npm run build && pm2 restart logistics-backend`
+2. `cd backend && npm run deploy && pm2 restart logistics-backend`
 3. Kiểm tra log: `pm2 logs logistics-backend` — dòng `CORS origins: ...`
 4. Test preflight:
 ```bash
@@ -370,7 +373,7 @@ pm2 logs logistics-admin       # Chỉ xem logs của Admin
 cd /var/www/logistics
 git pull
 # Build lại phần cần cập nhật (ví dụ backend)
-cd backend && npm install && npm run db:sync && npm run build && cd ..
+cd backend && npm install && npm run deploy && cd ..
 # Restart tiến trình trên PM2
 pm2 restart logistics-backend
 ```
