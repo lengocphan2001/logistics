@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Download, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/input-group';
@@ -27,6 +27,7 @@ import { customersService, type Customer } from '@/services/customers.service';
 import { ORDER_STATUSES, orderStatusLabels } from '@/lib/order-status';
 import { ORDER_TYPES, orderTypeLabels } from '@/lib/order-type';
 import { apiErrorMessage } from '@/lib/api-error';
+import { downloadFile } from '@/lib/download';
 import { icon } from '@/lib/icon';
 
 export default function OrdersPage() {
@@ -41,6 +42,22 @@ export default function OrdersPage() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await downloadFile('/orders/export', {
+        search: searchQuery || undefined,
+        status: statusFilter !== 'ALL' ? statusFilter : undefined,
+        type: typeFilter !== 'ALL' ? typeFilter : undefined,
+      });
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Không thể xuất dữ liệu'));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -91,10 +108,20 @@ export default function OrdersPage() {
         title="Đơn hàng"
         description="Đơn ký gửi, mua hộ, đặt hàng hộ và thanh toán hộ từ Trung Quốc về Việt Nam."
         action={
-          <Button onClick={openCreate}>
-            <Plus {...icon('inline')} aria-hidden />
-            Tạo đơn hàng
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport} disabled={exporting}>
+              {exporting ? (
+                <Loader2 {...icon('inline')} aria-hidden className="animate-spin" />
+              ) : (
+                <Download {...icon('inline')} aria-hidden />
+              )}
+              Xuất Excel
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus {...icon('inline')} aria-hidden />
+              Tạo đơn hàng
+            </Button>
+          </div>
         }
       />
 

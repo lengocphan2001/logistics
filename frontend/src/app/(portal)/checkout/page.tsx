@@ -118,6 +118,7 @@ function CheckoutContent() {
         </div>
 
         <CheckoutSummary
+          shippingMethod={form.shippingMethod}
           goodsTotalVnd={totals.goodsTotalVnd}
           serviceFeeVnd={totals.serviceFeeVnd}
           grandTotalVnd={totals.grandTotalVnd}

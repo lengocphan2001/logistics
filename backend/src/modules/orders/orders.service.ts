@@ -182,6 +182,22 @@ export class OrdersService {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
+  /**
+   * Same filters as the list, but every matching row and no pagination: an
+   * export that silently stopped at page one would be worse than none.
+   */
+  async exportAll(params: {
+    status?: OrderStatus;
+    type?: OrderType;
+    search?: string;
+    customerId?: string;
+    fromDate?: string;
+    toDate?: string;
+  }) {
+    const { data } = await this.findAll({ ...params, page: 1, limit: 10_000 });
+    return data;
+  }
+
   async findOne(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },

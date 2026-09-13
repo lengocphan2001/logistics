@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/input-group';
@@ -30,6 +30,7 @@ import {
   walletTransactionStatusLabels,
 } from '@/lib/wallet-transaction';
 import { apiErrorMessage } from '@/lib/api-error';
+import { downloadFile } from '@/lib/download';
 import { icon } from '@/lib/icon';
 
 export default function WalletTransactionsPage() {
@@ -42,6 +43,22 @@ export default function WalletTransactionsPage() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await downloadFile('/wallet-transactions/export', {
+        search: searchQuery || undefined,
+        type: typeFilter !== 'ALL' ? typeFilter : undefined,
+        status: statusFilter !== 'ALL' ? statusFilter : undefined,
+      });
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Không thể xuất dữ liệu'));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -101,6 +118,16 @@ export default function WalletTransactionsPage() {
       <PageHeader
         title="Lịch sử giao dịch ví"
         description="Duyệt yêu cầu nạp và rút của khách hàng, cùng các giao dịch phát sinh từ đơn hàng."
+        action={
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            {exporting ? (
+              <Loader2 {...icon('inline')} aria-hidden className="animate-spin" />
+            ) : (
+              <Download {...icon('inline')} aria-hidden />
+            )}
+            Xuất Excel
+          </Button>
+        }
       />
 
       <FilterBar>

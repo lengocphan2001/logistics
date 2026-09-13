@@ -24,6 +24,7 @@ const pageTitles: Record<string, string> = {
   '/settings': 'Cài đặt',
   '/warehouses': 'Kho hàng',
   '/staff': 'Nhân viên',
+  '/shipping-rates': 'Bảng giá vận chuyển',
 };
 
 export function DashboardShell({ children, title }: DashboardShellProps) {

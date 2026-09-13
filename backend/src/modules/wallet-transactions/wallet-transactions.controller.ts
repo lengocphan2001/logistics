@@ -9,8 +9,15 @@ import {
   Post,
   Query,
   Request,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { csvFilename, toCsv } from '../../common/utils/csv';
+import {
+  walletTransactionStatusLabels,
+  walletTransactionTypeLabels,
+} from '../../common/enums/wallet-transaction-label';
 import { WalletTransactionsService } from './wallet-transactions.service';
 import {
   ApproveWalletTransactionDto,
@@ -59,6 +66,58 @@ export class WalletTransactionsController {
       status,
       customerId: user.id,
     });
+  }
+
+  /** CSV for accounting. Declared before ':id' so Nest does not treat it as one. */
+  @Get('export')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SALES)
+  async exportCsv(
+    @Res() res: Response,
+    @Query('type') type?: WalletTransactionType,
+    @Query('status') status?: WalletTransactionStatus,
+    @Query('search') search?: string,
+  ) {
+    const { data } = await this.walletTransactionsService.findAll({
+      page: 1,
+      limit: 10_000,
+      type,
+      status,
+      search,
+    });
+
+    const csv = toCsv(data, [
+      { header: 'Mã giao dịch', value: (t) => t.code },
+      { header: 'Loại', value: (t) => walletTransactionTypeLabels[t.type] },
+      {
+        header: 'Trạng thái',
+        value: (t) => walletTransactionStatusLabels[t.status],
+      },
+      { header: 'Khách hàng', value: (t) => t.customer?.fullName ?? '' },
+      { header: 'Điện thoại', value: (t) => t.customer?.phone ?? '' },
+      { header: 'Số tiền (CNY)', value: (t) => Number(t.amount) },
+      {
+        header: 'Số tiền (VND)',
+        value: (t) => (t.vndAmount ? Number(t.vndAmount) : ''),
+      },
+      {
+        header: 'Số dư sau (CNY)',
+        value: (t) => (t.balanceAfter != null ? Number(t.balanceAfter) : ''),
+      },
+      { header: 'Mã vận đơn', value: (t) => t.order?.billOfLadingCode ?? '' },
+      { header: 'Mã chuyển khoản', value: (t) => t.referenceCode ?? '' },
+      { header: 'Lý do từ chối', value: (t) => t.rejectReason ?? '' },
+      { header: 'Ngày tạo', value: (t) => t.createdAt.toISOString() },
+    ]);
+
+    res
+      .status(200)
+      .setHeader('Content-Type', 'text/csv; charset=utf-8')
+      .setHeader(
+        'Content-Disposition',
+        `attachment; filename="${csvFilename('giao-dich-vi')}"`,
+      )
+      .send(csv);
   }
 
   @Get()

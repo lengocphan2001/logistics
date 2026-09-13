@@ -3,6 +3,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { SavedAddressPicker } from '@/components/shop/SavedAddressPicker';
 import { formatCny } from '@/lib/currency';
 
 type ReceiverField =
@@ -37,9 +38,21 @@ export function CheckoutReceiverSection({
 }: CheckoutReceiverSectionProps) {
   return (
     <section className="panel p-5">
-      <h2 className="font-heading text-base font-semibold text-[var(--ink)]">Người nhận</h2>
+      <h2 className="mb-4 font-heading text-base font-semibold text-[var(--ink)]">
+        Người nhận
+      </h2>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <SavedAddressPicker
+        onPick={(address) => {
+          onChange('receiverName', address.receiverName);
+          onChange('receiverPhone', address.receiverPhone);
+          onChange('receiverAddress', address.receiverAddress);
+          onChange('receiverProvince', address.receiverProvince ?? '');
+          onChange('receiverDistrict', address.receiverDistrict ?? '');
+        }}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="receiver-name">
             Họ tên <RequiredMark />

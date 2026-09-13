@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { apiErrorMessage } from '@/lib/api-error';
 import { toast } from 'sonner';
 import { PortalPageHeader } from '@/components/portal/PortalPageHeader';
+import { AddressBook } from '@/components/portal/AddressBook';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -243,6 +244,8 @@ export default function ProfilePage() {
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu thay đổi'}
         </Button>
       </form>
+
+      <AddressBook />
     </div>
   );
 }

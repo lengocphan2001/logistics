@@ -4,11 +4,14 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { OPTIONAL_SERVICES } from '@/config/shop.config';
+import { ShippingEstimate } from '@/components/shop/ShippingEstimate';
 import { formatVnd } from '@/lib/currency';
 import { icon } from '@/lib/icon';
 import { cn } from '@/lib/utils';
 
 interface CheckoutSummaryProps {
+  /** Line the customer picked, used to quote the international leg. */
+  shippingMethod: string;
   goodsTotalVnd: number;
   serviceFeeVnd: number;
   grandTotalVnd: number;
@@ -21,6 +24,7 @@ interface CheckoutSummaryProps {
 }
 
 export function CheckoutSummary({
+  shippingMethod,
   goodsTotalVnd,
   serviceFeeVnd,
   grandTotalVnd,
@@ -49,9 +53,10 @@ export function CheckoutSummary({
           <SummaryRow label="Tiền hàng" value={formatVnd(goodsTotalVnd)} />
           <SummaryRow label="Phí mua hộ" value={formatVnd(serviceFeeVnd)} />
           <SummaryRow label="Ship nội địa Trung Quốc" value={pendingLabel} pending />
-          <SummaryRow label="Ship quốc tế Trung Việt" value={pendingLabel} pending />
           <SummaryRow label="Ship nội địa Việt Nam" value={pendingLabel} pending />
         </dl>
+
+        <ShippingEstimate method={shippingMethod} />
 
         <div className="border-t border-[var(--rule)] px-5 py-4">
           <h3 className="mb-3 text-sm font-semibold text-[var(--ink)]">Dịch vụ tuỳ chọn</h3>

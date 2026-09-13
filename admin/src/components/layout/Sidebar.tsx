@@ -8,6 +8,7 @@ import {
   PanelLeftOpen,
   Settings,
   ShoppingCart,
+  Truck,
   UserCog,
   Users,
   Wallet,
@@ -30,6 +31,7 @@ const navItems = [
   { title: 'Khách hàng', href: '/customers', icon: Users, roles: ['ADMIN', 'SALES'] },
   { title: 'Lịch sử giao dịch', href: '/wallet-transactions', icon: Wallet, roles: ['ADMIN', 'SALES'] },
   { title: 'Kho hàng', href: '/warehouses', icon: Warehouse, roles: ['ADMIN'] },
+  { title: 'Bảng giá vận chuyển', href: '/shipping-rates', icon: Truck, roles: ['ADMIN', 'SALES'] },
   { title: 'Nhân viên', href: '/staff', icon: UserCog, roles: ['ADMIN'] },
 ];
 

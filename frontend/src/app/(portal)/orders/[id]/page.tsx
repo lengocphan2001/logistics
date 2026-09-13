@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, ExternalLink } from 'lucide-react';
 import { ordersService, type CustomerOrderDetail } from '@/services/orders.service';
 import { ProductImage } from '@/components/shop/ProductImage';
+import { ReorderButton } from '@/components/portal/ReorderButton';
 import { orderTypeLabels } from '@/lib/order-type';
 import { orderStatusBadgeColors, orderStatusLabels } from '@/lib/order-status';
 import { formatCny } from '@/lib/currency';
@@ -69,9 +70,12 @@ export default function OrderDetailPage() {
               Tạo lúc {formatDateTime(order.createdAt)}
             </p>
           </div>
-          <Badge variant="outline" className={orderStatusBadgeColors[order.status]}>
-            {orderStatusLabels[order.status]}
-          </Badge>
+          <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
+            <Badge variant="outline" className={orderStatusBadgeColors[order.status]}>
+              {orderStatusLabels[order.status]}
+            </Badge>
+            <ReorderButton order={order} />
+          </div>
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-3 sm:gap-4">

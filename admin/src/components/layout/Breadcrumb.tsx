@@ -12,6 +12,7 @@ const routeLabels: Record<string, string> = {
   'wallet-transactions': 'Lịch sử giao dịch',
   warehouses: 'Kho hàng',
   staff: 'Nhân viên',
+  'shipping-rates': 'Bảng giá vận chuyển',
   drivers: 'Tài xế',
   vehicles: 'Phương tiện',
   reports: 'Báo cáo',

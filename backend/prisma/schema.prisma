@@ -145,6 +145,7 @@ model Customer {
   updatedAt       DateTime  @updatedAt
 
   @@map("customers")
+  addresses CustomerAddress[]
 }
 
 model Order {
@@ -344,6 +345,51 @@ model WalletTransaction {
   @@index([status])
   @@index([createdAt])
   @@map("wallet_transactions")
+}
+
+/**
+ * Bảng giá vận chuyển Trung Quốc về Việt Nam theo từng tuyến (line).
+ * Cân nặng thật chỉ biết khi hàng về kho, nên bảng này dùng để khách ước
+ * tính trước và để nhân viên tính phí sau.
+ */
+/** Sổ địa chỉ nhận hàng của khách, để không phải nhập lại mỗi lần đặt. */
+model CustomerAddress {
+  id         String  @id @default(uuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  label            String?
+  receiverName     String
+  receiverPhone    String
+  receiverAddress  String
+  receiverProvince String?
+  receiverDistrict String?
+  isDefault        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId, isDefault])
+  @@map("customer_addresses")
+}
+
+model ShippingRate {
+  id             String  @id @default(uuid())
+  /** Khớp với giá trị `shippingMethod` gửi lên khi đặt hàng. */
+  method         String  @unique
+  name           String
+  pricePerKgVnd  Decimal @db.Decimal(18, 2)
+  minChargeVnd   Decimal @default(0) @db.Decimal(18, 2)
+  /** Khoảng thời gian dự kiến, ví dụ "4 đến 6 ngày". */
+  estimatedDays  String?
+  note           String?
+  isActive       Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shipping_rates")
 }
 
 model Notification {

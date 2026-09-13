@@ -43,6 +43,42 @@ async function main() {
     },
   });
 
+  // Bảng giá vận chuyển mặc định, khớp với SHIPPING_METHODS ở frontend.
+  const shippingRates = [
+    {
+      method: 'standard',
+      name: 'Line Thường',
+      pricePerKgVnd: 25000,
+      minChargeVnd: 25000,
+      estimatedDays: '5 đến 7 ngày',
+      sortOrder: 1,
+    },
+    {
+      method: 'express',
+      name: 'Line Nhanh',
+      pricePerKgVnd: 38000,
+      minChargeVnd: 38000,
+      estimatedDays: '3 đến 4 ngày',
+      sortOrder: 2,
+    },
+    {
+      method: 'economy',
+      name: 'Line Tiết Kiệm',
+      pricePerKgVnd: 18000,
+      minChargeVnd: 20000,
+      estimatedDays: '8 đến 12 ngày',
+      sortOrder: 3,
+    },
+  ];
+
+  for (const rate of shippingRates) {
+    await prisma.shippingRate.upsert({
+      where: { method: rate.method },
+      update: {},
+      create: rate,
+    });
+  }
+
   console.log('Warehouses seeded:', { whCn, wh1, wh2 });
 
   // 2. Hash Password

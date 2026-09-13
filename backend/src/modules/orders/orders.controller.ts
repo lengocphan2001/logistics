@@ -11,8 +11,13 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
   Request,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { OrdersService } from './orders.service';
+import { csvFilename, toCsv } from '../../common/utils/csv';
+import { orderStatusLabels } from '../../common/enums/order-status-label';
+import { orderTypeLabels } from '../../common/enums/order-type-label';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import {
@@ -90,6 +95,52 @@ export class OrdersController {
     @Request() req: { user: { id: string } },
   ) {
     return this.ordersService.refundWallet(id, dto, req.user.id);
+  }
+
+  /** CSV for accounting. Must sit above ':id' or Nest matches it as an id. */
+  @Get('export')
+  @Roles(Role.ADMIN, Role.SALES)
+  async exportCsv(
+    @Res() res: Response,
+    @Query('status') status?: OrderStatus,
+    @Query('type') type?: OrderType,
+    @Query('search') search?: string,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+  ) {
+    const orders = await this.ordersService.exportAll({
+      status,
+      type,
+      search,
+      fromDate,
+      toDate,
+    });
+
+    const csv = toCsv(orders, [
+      { header: 'Mã vận đơn', value: (o) => o.billOfLadingCode },
+      { header: 'Loại đơn', value: (o) => orderTypeLabels[o.type] },
+      { header: 'Trạng thái', value: (o) => orderStatusLabels[o.status] },
+      { header: 'Khách hàng', value: (o) => o.customer?.fullName ?? '' },
+      { header: 'Điện thoại khách', value: (o) => o.customer?.phone ?? '' },
+      { header: 'Người nhận', value: (o) => o.receiverName },
+      { header: 'Điện thoại nhận', value: (o) => o.receiverPhone },
+      { header: 'Địa chỉ nhận', value: (o) => o.receiverAddress },
+      { header: 'Kho', value: (o) => o.warehouse?.name ?? '' },
+      { header: 'Tiền hàng (CNY)', value: (o) => Number(o.itemsTotalCny ?? 0) },
+      { header: 'Đã cọc (CNY)', value: (o) => Number(o.depositAmount) },
+      { header: 'Đã trả ví (CNY)', value: (o) => Number(o.walletPaidAmount) },
+      { header: 'Tổng phí (VND)', value: (o) => Number(o.totalFee) },
+      { header: 'Ngày tạo', value: (o) => o.createdAt.toISOString() },
+    ]);
+
+    res
+      .status(200)
+      .setHeader('Content-Type', 'text/csv; charset=utf-8')
+      .setHeader(
+        'Content-Disposition',
+        `attachment; filename="${csvFilename('don-hang')}"`,
+      )
+      .send(csv);
   }
 
   @Get('bill/:code')
