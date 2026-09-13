@@ -628,6 +628,8 @@ export class OrdersService {
 
     const grandTotalCny = shopGroups.reduce((s, g) => s + g.totalCny, 0);
 
+    // Cheap early exit for the common case. The authoritative check happens
+    // inside the transaction, against a row the transaction has locked.
     if (Number(customer.balance) < grandTotalCny) {
       throw new BadRequestException(
         `Số dư ví không đủ. Cần ¥${grandTotalCny.toFixed(2)}, hiện có ¥${Number(customer.balance).toFixed(2)}`,
@@ -643,7 +645,20 @@ export class OrdersService {
     const createdOrders: string[] = [];
 
     await this.prisma.$transaction(async (tx) => {
-      let remainingBalance = Number(customer.balance);
+      // Re-read inside the transaction. The balance may have moved since the
+      // check above, for example because staff approved a top-up.
+      const fresh = await tx.customer.findUnique({
+        where: { id: customerId },
+        select: { balance: true },
+      });
+      if (!fresh) throw new NotFoundException('Không tìm thấy khách hàng');
+
+      let remainingBalance = Number(fresh.balance);
+      if (remainingBalance < grandTotalCny) {
+        throw new BadRequestException(
+          `Số dư ví không đủ. Cần ¥${grandTotalCny.toFixed(2)}, hiện có ¥${remainingBalance.toFixed(2)}`,
+        );
+      }
 
       for (const group of shopGroups) {
         const depositCny = group.totalCny;
@@ -696,14 +711,27 @@ export class OrdersService {
 
         createdOrders.push(order.id);
 
-        // Deduct wallet
-        remainingBalance -= depositCny;
-        await tx.customer.update({
+        // Conditional atomic decrement: the row is only debited if it still
+        // holds enough, so two checkouts running at once can neither overwrite
+        // each other's deduction nor drive the balance negative.
+        const debited = await tx.customer.updateMany({
+          where: { id: customerId, balance: { gte: depositCny } },
+          data: { balance: { decrement: depositCny } },
+        });
+        if (debited.count === 0) {
+          throw new BadRequestException(
+            `Số dư ví không đủ để đặt cọc ¥${depositCny.toFixed(2)}`,
+          );
+        }
+
+        const afterDeduct = await tx.customer.findUniqueOrThrow({
           where: { id: customerId },
-          data: { balance: remainingBalance },
+          select: { balance: true },
         });
 
-        // Wallet transaction
+        const balanceBefore = remainingBalance;
+        remainingBalance = Number(afterDeduct.balance);
+
         await tx.walletTransaction.create({
           data: {
             type: 'ORDER_DEPOSIT',
@@ -712,7 +740,7 @@ export class OrdersService {
             vndAmount: depositCny * rate,
             exchangeRate: rate,
             note: `Đặt cọc đơn mua hộ ${group.shopName ?? group.shopId ?? ''}`,
-            balanceBefore: remainingBalance + depositCny,
+            balanceBefore,
             balanceAfter: remainingBalance,
             customerId,
             orderId: order.id,

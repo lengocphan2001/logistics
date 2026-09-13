@@ -5,25 +5,18 @@ import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuthStore } from '@/stores/auth.store';
 import { icon } from '@/lib/icon';
 
-/** Public tracking entry. Signed-out visitors are sent through login first. */
+/** Public tracking entry. Holding the code is enough; no sign-in required. */
 export function LandingTracking() {
   const router = useRouter();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [trackingCode, setTrackingCode] = useState('');
 
   const handleTrack = (e: React.FormEvent) => {
     e.preventDefault();
     const code = trackingCode.trim();
     if (!code) return;
-    const path = `/tracking/${encodeURIComponent(code)}`;
-    if (isAuthenticated) {
-      router.push(path);
-    } else {
-      router.push(`/login?redirect=${encodeURIComponent(path)}`);
-    }
+    router.push(`/tracking/${encodeURIComponent(code)}`);
   };
 
   return (
@@ -34,7 +27,7 @@ export function LandingTracking() {
           Tra cứu vận đơn
         </h2>
         <p data-prose className="mx-auto mt-3 text-base">
-          Nhập mã vận đơn để xem trạng thái. Đăng nhập để xem đầy đủ hành trình.
+          Nhập mã vận đơn để xem trạng thái và hành trình. Không cần đăng nhập.
         </p>
 
         <form onSubmit={handleTrack} className="mt-8 flex flex-col gap-3 sm:flex-row">

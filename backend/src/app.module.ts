@@ -11,6 +11,7 @@ import { UsersModule } from './modules/users/users.module';
 import { WarehousesModule } from './modules/warehouses/warehouses.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { TrackingModule } from './modules/tracking/tracking.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { WalletTransactionsModule } from './modules/wallet-transactions/wallet-transactions.module';
 import { ProductsModule } from './modules/products/products.module';
@@ -34,6 +35,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     WarehousesModule,
     CustomersModule,
     OrdersModule,
+    TrackingModule,
     SettingsModule,
     WalletTransactionsModule,
     ProductsModule,
