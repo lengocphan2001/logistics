@@ -57,7 +57,15 @@ export function CheckoutRouteSection({
             disabled={cnLoading || cnWarehouses.length === 0}
           >
             <SelectTrigger id="cn-warehouse">
-              <SelectValue placeholder={cnLoading ? 'Đang tải' : 'Chọn kho Trung Quốc'} />
+              <SelectValue
+                placeholder={
+                  cnLoading
+                    ? 'Đang tải'
+                    : cnWarehouses.length === 0
+                      ? 'Chưa có kho Trung Quốc'
+                      : 'Chọn kho Trung Quốc'
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               {cnWarehouses.map((w) => (
@@ -79,7 +87,15 @@ export function CheckoutRouteSection({
             disabled={vnLoading || vnWarehouses.length === 0}
           >
             <SelectTrigger id="vn-warehouse">
-              <SelectValue placeholder={vnLoading ? 'Đang tải' : 'Chọn kho Việt Nam'} />
+              <SelectValue
+                placeholder={
+                  vnLoading
+                    ? 'Đang tải'
+                    : vnWarehouses.length === 0
+                      ? 'Chưa có kho Việt Nam'
+                      : 'Chọn kho Việt Nam'
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               {vnWarehouses.map((w) => (

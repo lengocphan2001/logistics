@@ -6,6 +6,13 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SearchInput } from '@/components/ui/input-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Modal } from '@/components/ui/modal';
 import { RequiredMark } from '@/components/ui/required-mark';
@@ -27,16 +34,24 @@ import api from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api-error';
 import { icon } from '@/lib/icon';
 
+type WarehouseCountry = 'CN' | 'VN';
+
 interface Warehouse {
   id: string;
   name: string;
   code: string;
   address: string;
+  country: WarehouseCountry;
   users?: { id: string; name: string; email: string }[];
   _count?: { users: number };
 }
 
-const emptyForm = { name: '', code: '', address: '' };
+const countryLabels: Record<WarehouseCountry, string> = {
+  CN: 'Trung Quốc',
+  VN: 'Việt Nam',
+};
+
+const emptyForm = { name: '', code: '', address: '', country: 'VN' as WarehouseCountry };
 
 export default function WarehousesPage() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -78,7 +93,12 @@ export default function WarehousesPage() {
 
   const openEdit = (wh: Warehouse) => {
     setEditing(wh);
-    setFormData({ name: wh.name, code: wh.code, address: wh.address });
+    setFormData({
+      name: wh.name,
+      code: wh.code,
+      address: wh.address,
+      country: wh.country ?? 'VN',
+    });
     setIsOpen(true);
   };
 
@@ -160,6 +180,7 @@ export default function WarehousesPage() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Mã kho</TableHead>
                   <TableHead>Tên kho</TableHead>
+                  <TableHead>Quốc gia</TableHead>
                   <TableHead>Địa chỉ</TableHead>
                   <TableHead className="text-right">Nhân sự</TableHead>
                   <TableHead className="text-right">Hành động</TableHead>
@@ -173,6 +194,9 @@ export default function WarehousesPage() {
                     </TableCell>
                     <TableCell className="text-sm font-medium text-[var(--ink)]">
                       {wh.name}
+                    </TableCell>
+                    <TableCell className="text-sm text-[var(--ink)]">
+                      {countryLabels[wh.country] ?? wh.country}
                     </TableCell>
                     <TableCell className="whitespace-normal text-sm text-[var(--graphite)]">
                       {wh.address}
@@ -244,6 +268,29 @@ export default function WarehousesPage() {
               required
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wh-country">
+              Quốc gia <RequiredMark />
+            </Label>
+            <Select
+              value={formData.country}
+              onValueChange={(v) =>
+                setFormData({ ...formData, country: v as WarehouseCountry })
+              }
+            >
+              <SelectTrigger id="wh-country">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CN">Trung Quốc</SelectItem>
+                <SelectItem value="VN">Việt Nam</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-[var(--graphite)]">
+              Kho Trung Quốc là nơi nhận hàng từ sàn. Kho Việt Nam là nơi giao cho khách.
+            </p>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="wh-address">
               Địa chỉ <RequiredMark />

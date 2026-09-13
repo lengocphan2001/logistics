@@ -16,6 +16,7 @@ import { NotificationBell } from '@/components/layout/NotificationBell';
 import { useUIStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { icon } from '@/lib/icon';
+import { roleLabels } from '@/components/staff/staff.types';
 
 interface HeaderProps {
   title?: string;
@@ -94,8 +95,8 @@ export function Header({ title }: HeaderProps) {
               <p className="text-sm font-medium leading-tight text-[var(--ink)]">
                 {user?.name ?? 'Admin'}
               </p>
-              <p className="text-[11px] capitalize leading-tight text-[var(--graphite)]">
-                {user?.role ?? 'admin'}
+              <p className="text-[11px] leading-tight text-[var(--graphite)]">
+                {roleLabels[(user?.role ?? '').toUpperCase()] ?? 'Quản trị hệ thống'}
               </p>
             </div>
             <ChevronDown

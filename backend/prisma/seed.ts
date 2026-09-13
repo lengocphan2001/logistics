@@ -7,27 +7,43 @@ async function main() {
   console.log('Seeding database...');
 
   // 1. Create some Warehouses
+  // A purchase order always travels CN warehouse -> VN warehouse, so the seed
+  // has to provide at least one of each. `country` defaults to VN in the
+  // schema, which is why it is set explicitly here.
+  const whCn = await prisma.warehouse.upsert({
+    where: { code: 'WH-GZ-01' },
+    update: { country: 'CN' },
+    create: {
+      name: 'Kho Quảng Châu',
+      code: 'WH-GZ-01',
+      address: 'Bạch Vân, Quảng Châu, Quảng Đông, Trung Quốc',
+      country: 'CN',
+    },
+  });
+
   const wh1 = await prisma.warehouse.upsert({
     where: { code: 'WH-HN-01' },
-    update: {},
+    update: { country: 'VN' },
     create: {
       name: 'Kho Hà Nội Bắc Từ Liêm',
       code: 'WH-HN-01',
       address: 'Số 10 Đường Cầu Diễn, Bắc Từ Liêm, Hà Nội',
+      country: 'VN',
     },
   });
 
   const wh2 = await prisma.warehouse.upsert({
     where: { code: 'WH-SG-01' },
-    update: {},
+    update: { country: 'VN' },
     create: {
       name: 'Kho Sài Gòn Quận 12',
       code: 'WH-SG-01',
       address: 'Số 150 Quốc lộ 1A, Quận 12, TP. Hồ Chí Minh',
+      country: 'VN',
     },
   });
 
-  console.log('Warehouses seeded:', { wh1, wh2 });
+  console.log('Warehouses seeded:', { whCn, wh1, wh2 });
 
   // 2. Hash Password
   const salt = await bcrypt.genSalt(10);

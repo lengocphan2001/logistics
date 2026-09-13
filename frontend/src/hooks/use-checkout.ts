@@ -104,8 +104,20 @@ export function useCheckout(selectedIds: string[]) {
       toast.error('Vui lòng điền đầy đủ thông tin người nhận');
       return;
     }
-    if (!cnWarehouseId || !vnWarehouseId) {
-      toast.error('Vui lòng chọn kho Trung Quốc và kho Việt Nam');
+    if (!cnWarehouseId) {
+      toast.error(
+        cnWarehouses.length === 0
+          ? 'Hệ thống chưa có kho Trung Quốc. Vui lòng liên hệ nhân viên hỗ trợ.'
+          : 'Vui lòng chọn kho Trung Quốc',
+      );
+      return;
+    }
+    if (!vnWarehouseId) {
+      toast.error(
+        vnWarehouses.length === 0
+          ? 'Hệ thống chưa có kho Việt Nam. Vui lòng liên hệ nhân viên hỗ trợ.'
+          : 'Vui lòng chọn kho Việt Nam',
+      );
       return;
     }
     if (!agreed) {

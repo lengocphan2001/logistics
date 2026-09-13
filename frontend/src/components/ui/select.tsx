@@ -12,10 +12,45 @@ type SelectProps = Omit<SelectPrimitive.Root.Props<string>, "onValueChange"> & {
   onValueChange?: (value: string, eventDetails: SelectChangeEventDetails) => void
 }
 
-function Select({ onValueChange, ...props }: SelectProps) {
+/**
+ * Base UI shows the raw value in the trigger unless the root is given a
+ * value-to-label map. Rather than repeating that map at every call site, walk
+ * the children once and build it from the `SelectItem`s already declared.
+ */
+function collectItemLabels(
+  children: React.ReactNode,
+  acc: Record<string, React.ReactNode>,
+) {
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return
+
+    if (child.type === SelectItem) {
+      const { value, children: label } = child.props as {
+        value?: unknown
+        children?: React.ReactNode
+      }
+      if (typeof value === "string") acc[value] = label
+      return
+    }
+
+    const nested = (child.props as { children?: React.ReactNode })?.children
+    if (nested) collectItemLabels(nested, acc)
+  })
+}
+
+function Select({ onValueChange, items, children, ...props }: SelectProps) {
+  // An explicit `items` prop still wins, for values that are not plain strings.
+  const derivedItems = React.useMemo(() => {
+    if (items) return items
+    const acc: Record<string, React.ReactNode> = {}
+    collectItemLabels(children, acc)
+    return Object.keys(acc).length > 0 ? acc : undefined
+  }, [items, children])
+
   return (
     <SelectPrimitive.Root
       {...props}
+      items={derivedItems}
       onValueChange={
         onValueChange
           ? (value, eventDetails) => {
@@ -25,7 +60,9 @@ function Select({ onValueChange, ...props }: SelectProps) {
             }
           : undefined
       }
-    />
+    >
+      {children}
+    </SelectPrimitive.Root>
   )
 }
 
