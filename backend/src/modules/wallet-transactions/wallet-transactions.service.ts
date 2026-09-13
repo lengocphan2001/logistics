@@ -32,6 +32,17 @@ const TX_INCLUDE = {
   processedBy: { select: { id: true, name: true, email: true } },
 };
 
+type SystemTransactionParams = {
+  customerId: string;
+  type: WalletTransactionType;
+  amount: number;
+  orderId?: string;
+  note?: string;
+  createdById?: string;
+  vndAmount?: number;
+  exchangeRate?: number;
+};
+
 type LedgerEntryParams = {
   customerId: string;
   type: WalletTransactionType;
@@ -67,6 +78,30 @@ export class WalletTransactionsService {
     }
   }
 
+  /**
+   * Takes money out of the wallet only if the money is still there, in one
+   * statement the database evaluates atomically.
+   *
+   * Reading the balance and then decrementing it lets two requests that arrive
+   * together both read the same balance and both spend it, which is how a
+   * wallet goes negative. The condition lives in the WHERE clause instead, so
+   * the second request matches no row and is told the balance is short.
+   */
+  private async debit(
+    tx: Prisma.TransactionClient,
+    customerId: string,
+    amount: number,
+  ) {
+    const result = await tx.customer.updateMany({
+      where: { id: customerId, balance: { gte: amount } },
+      data: { balance: { decrement: amount } },
+    });
+
+    if (result.count === 0) {
+      throw new BadRequestException('Số dư ví khách hàng không đủ');
+    }
+  }
+
   private async createLedgerEntry(
     tx: Prisma.TransactionClient,
     params: LedgerEntryParams,
@@ -82,16 +117,14 @@ export class WalletTransactionsService {
     let balanceAfter = balanceBefore;
 
     if (params.status === WalletTransactionStatus.APPROVED) {
-      if (!isWalletCredit(params.type)) {
-        this.ensureSufficientBalance(customer.balance, params.amount);
+      if (isWalletCredit(params.type)) {
+        await tx.customer.update({
+          where: { id: params.customerId },
+          data: { balance: { increment: params.amount } },
+        });
+      } else {
+        await this.debit(tx, params.customerId, params.amount);
       }
-
-      await tx.customer.update({
-        where: { id: params.customerId },
-        data: isWalletCredit(params.type)
-          ? { balance: { increment: params.amount } }
-          : { balance: { decrement: params.amount } },
-      });
 
       const updated = await tx.customer.findUnique({
         where: { id: params.customerId },
@@ -127,38 +160,43 @@ export class WalletTransactionsService {
     });
   }
 
-  /** Giao dịch hệ thống — luôn duyệt ngay (đơn hàng, hoàn tiền) */
-  async recordSystemTransaction(params: {
-    customerId: string;
-    type: WalletTransactionType;
-    amount: number;
-    orderId?: string;
-    note?: string;
-    createdById?: string;
-    vndAmount?: number;
-    exchangeRate?: number;
-  }) {
+  /**
+   * Giao dịch hệ thống — luôn duyệt ngay (đơn hàng, hoàn tiền).
+   *
+   * Callers that also change the order in the same breath should use
+   * {@link recordSystemTransactionIn} with their own transaction, so the money
+   * and the order state either both happen or neither does.
+   */
+  async recordSystemTransaction(params: SystemTransactionParams) {
+    return this.prisma.$transaction((tx) =>
+      this.recordSystemTransactionIn(tx, params),
+    );
+  }
+
+  /** Cùng việc như trên, nhưng chạy trong transaction do nơi gọi mở. */
+  async recordSystemTransactionIn(
+    tx: Prisma.TransactionClient,
+    params: SystemTransactionParams,
+  ) {
     const exchangeRate =
       params.exchangeRate ??
       (params.vndAmount
         ? params.vndAmount / params.amount
         : await this.getDefaultExchangeRate());
 
-    return this.prisma.$transaction((tx) =>
-      this.createLedgerEntry(tx, {
-        customerId: params.customerId,
-        type: params.type,
-        amount: params.amount,
-        orderId: params.orderId,
-        note: params.note,
-        vndAmount: params.vndAmount,
-        exchangeRate,
-        status: WalletTransactionStatus.APPROVED,
-        createdById: params.createdById,
-        processedById: params.createdById,
-        processedAt: new Date(),
-      }),
-    );
+    return this.createLedgerEntry(tx, {
+      customerId: params.customerId,
+      type: params.type,
+      amount: params.amount,
+      orderId: params.orderId,
+      note: params.note,
+      vndAmount: params.vndAmount,
+      exchangeRate,
+      status: WalletTransactionStatus.APPROVED,
+      createdById: params.createdById,
+      processedById: params.createdById,
+      processedAt: new Date(),
+    });
   }
 
   async createCustomerRequest(
@@ -314,6 +352,19 @@ export class WalletTransactionsService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // Claim the request first. Two staff approving the same withdrawal at the
+      // same time both saw PENDING a moment ago; only the one that changes the
+      // row gets to move the money.
+      const claimed = await tx.walletTransaction.updateMany({
+        where: { id, status: WalletTransactionStatus.PENDING },
+        data: { status: WalletTransactionStatus.APPROVED },
+      });
+      if (claimed.count === 0) {
+        throw new BadRequestException(
+          'Giao dịch đã được xử lý bởi người khác',
+        );
+      }
+
       const customer = await tx.customer.findUnique({
         where: { id: existing.customerId },
       });
@@ -324,16 +375,14 @@ export class WalletTransactionsService {
       const balanceBefore = Number(customer.balance);
       const amount = Number(existing.amount);
 
-      if (!isWalletCredit(existing.type)) {
-        this.ensureSufficientBalance(customer.balance, amount);
+      if (isWalletCredit(existing.type)) {
+        await tx.customer.update({
+          where: { id: existing.customerId },
+          data: { balance: { increment: amount } },
+        });
+      } else {
+        await this.debit(tx, existing.customerId, amount);
       }
-
-      await tx.customer.update({
-        where: { id: existing.customerId },
-        data: isWalletCredit(existing.type)
-          ? { balance: { increment: amount } }
-          : { balance: { decrement: amount } },
-      });
 
       const updatedCustomer = await tx.customer.findUnique({
         where: { id: existing.customerId },
@@ -342,7 +391,6 @@ export class WalletTransactionsService {
       return tx.walletTransaction.update({
         where: { id },
         data: {
-          status: WalletTransactionStatus.APPROVED,
           balanceBefore,
           balanceAfter: Number(updatedCustomer!.balance),
           processedById,

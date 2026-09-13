@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -53,6 +54,9 @@ const UNCHARGED_ITEM_STATUSES: OrderItemStatus[] = [
 ];
 
 type OrderRow = Prisma.OrderGetPayload<{ include: typeof ORDER_INCLUDE }>;
+
+/** Câu thông báo viết riêng cho khách, thay cho tên trạng thái trơ. */
+type CustomerMessage = { title: string; message: string };
 
 export type OrderAmounts = {
   /** Tiền hàng phải trả cho sàn (¥). Đơn ký gửi luôn bằng 0. */
@@ -118,20 +122,21 @@ export class OrderWorkflowService {
   async amounts(order: OrderRow): Promise<OrderAmounts> {
     const { vndPerCny } = await this.settingsService.getExchangeRate();
 
-    const chargeableItems = order.items.filter(
-      (item) => !UNCHARGED_ITEM_STATUSES.includes(item.status),
-    );
+    // When the order has lines, the lines are the only truth — including the
+    // case where every one of them fell through. An order whose whole basket
+    // went out of stock owes nothing for goods, so the order-level total is a
+    // fallback for orders that never had lines, never a floor under them.
+    const rawGoods = order.items.length
+      ? order.items
+          .filter((item) => !UNCHARGED_ITEM_STATUSES.includes(item.status))
+          .reduce(
+            (sum, item) =>
+              sum +
+              Number(item.purchasedPriceCny ?? item.priceCny) * item.quantity,
+            0,
+          )
+      : Number(order.itemsTotalCny ?? 0);
 
-    // Once staff have priced the lines, the lines are the truth. Before that,
-    // the order-level total is all there is.
-    const itemsSum = chargeableItems.reduce(
-      (sum, item) =>
-        sum + Number(item.purchasedPriceCny ?? item.priceCny) * item.quantity,
-      0,
-    );
-
-    const orderLevelGoods = Number(order.itemsTotalCny ?? 0);
-    const rawGoods = itemsSum > 0 ? itemsSum : orderLevelGoods;
     const goodsCny = order.type === OrderType.CONSIGNMENT ? 0 : rawGoods;
 
     const feesVnd = Number(order.totalFee);
@@ -166,36 +171,84 @@ export class OrderWorkflowService {
     note: string,
     data: Prisma.OrderUncheckedUpdateInput = {},
     /** Thay câu thông báo mặc định khi tên trạng thái chưa đủ rõ cho khách. */
-    customerMessage?: { title: string; message: string },
+    customerMessage?: CustomerMessage,
+  ): Promise<OrderRow> {
+    const updated = await this.prisma.$transaction((tx) =>
+      this.applyAdvance(tx, order, to, note, data),
+    );
+    await this.announce(order, updated, to, customerMessage);
+    return updated;
+  }
+
+  /**
+   * The status change itself, inside whatever transaction the caller owns, so a
+   * step that also moves money commits both together or neither.
+   */
+  private async applyAdvance(
+    tx: Prisma.TransactionClient,
+    order: OrderRow,
+    to: OrderStatus,
+    note: string,
+    data: Prisma.OrderUncheckedUpdateInput = {},
+    /** Điều kiện phải còn đúng lúc ghi, chống hai request cùng chạy. */
+    guard: Prisma.OrderWhereInput = {},
   ): Promise<OrderRow> {
     assertTransition(order.type, order.status, to, orderTypeLabels[order.type]);
 
-    const updated = await this.prisma.order.update({
-      where: { id: order.id },
+    const claimed = await tx.order.updateMany({
+      where: { id: order.id, status: order.status, ...guard },
       data: {
         ...data,
         status: to,
         ...(to === OrderStatus.COMPLETED ? { deliveredAt: new Date() } : {}),
         ...(to === OrderStatus.CANCELLED ? { cancelledAt: new Date() } : {}),
-        events: { create: { status: to, note } },
       },
-      include: ORDER_INCLUDE,
     });
 
-    if (customerMessage) {
-      await this.notificationsService.notifyOrderMessage(
-        updated,
-        customerMessage.title,
-        customerMessage.message,
-      );
-    } else if (to !== order.status) {
-      await this.notificationsService.notifyOrderStatusChange(
-        updated,
-        statusLabelFor(order.type, to),
+    if (claimed.count === 0) {
+      throw new ConflictException(
+        'Đơn hàng vừa được cập nhật bởi người khác. Tải lại rồi thử lại.',
       );
     }
 
-    return updated;
+    await tx.orderEvent.create({
+      data: { orderId: order.id, status: to, note },
+    });
+
+    return tx.order.findUniqueOrThrow({
+      where: { id: order.id },
+      include: ORDER_INCLUDE,
+    });
+  }
+
+  /** Thông báo sau khi transaction đã commit, không nằm trong transaction. */
+  private async announce(
+    before: OrderRow,
+    after: OrderRow,
+    to: OrderStatus,
+    customerMessage?: CustomerMessage,
+  ) {
+    if (customerMessage) {
+      await this.notificationsService.notifyOrderMessage(
+        after,
+        customerMessage.title,
+        customerMessage.message,
+      );
+    } else if (to !== before.status) {
+      await this.notificationsService.notifyOrderStatusChange(
+        after,
+        statusLabelFor(before.type, to),
+      );
+    }
+  }
+
+  private requireCustomer(order: OrderRow): string {
+    if (!order.customerId) {
+      throw new BadRequestException(
+        'Đơn hàng chưa gắn khách hàng, không thể trừ ví',
+      );
+    }
+    return order.customerId;
   }
 
   /** Trừ ví khách và ghi sổ, dùng chung cho thu tiền hàng và thu cước. */
@@ -206,15 +259,33 @@ export class OrderWorkflowService {
     note: string,
     userId?: string,
   ) {
-    if (!order.customerId) {
-      throw new BadRequestException(
-        'Đơn hàng chưa gắn khách hàng, không thể trừ ví',
-      );
-    }
+    const customerId = this.requireCustomer(order);
     if (amount <= 0) return null;
 
     return this.walletTransactionsService.recordSystemTransaction({
-      customerId: order.customerId,
+      customerId,
+      type,
+      amount,
+      orderId: order.id,
+      note,
+      createdById: userId,
+    });
+  }
+
+  /** Cùng việc, nhưng trong transaction của nơi gọi. */
+  private async chargeIn(
+    tx: Prisma.TransactionClient,
+    order: OrderRow,
+    type: WalletTransactionType,
+    amount: number,
+    note: string,
+    userId?: string,
+  ) {
+    const customerId = this.requireCustomer(order);
+    if (amount <= 0) return null;
+
+    return this.walletTransactionsService.recordSystemTransactionIn(tx, {
+      customerId,
       type,
       amount,
       orderId: order.id,
@@ -235,10 +306,14 @@ export class OrderWorkflowService {
     return { assignedToId: userId, assignedAt: new Date() };
   }
 
-  private applyItemUpdates(
+  /**
+   * Validates the lines belong to this order and returns plain update
+   * arguments, so the caller decides which transaction they run in.
+   */
+  private itemUpdateArgs(
     order: OrderRow,
     updates: OrderItemPurchaseDto[] | undefined,
-  ): Prisma.PrismaPromise<unknown>[] {
+  ): Prisma.OrderItemUpdateArgs[] {
     if (!updates?.length) return [];
 
     const known = new Set(order.items.map((item) => item.id));
@@ -248,16 +323,14 @@ export class OrderWorkflowService {
       }
     }
 
-    return updates.map((update) =>
-      this.prisma.orderItem.update({
-        where: { id: update.id },
-        data: {
-          status: update.status,
-          purchasedPriceCny: update.purchasedPriceCny,
-          statusNote: update.statusNote,
-        },
-      }),
-    );
+    return updates.map((update) => ({
+      where: { id: update.id },
+      data: {
+        status: update.status,
+        purchasedPriceCny: update.purchasedPriceCny,
+        statusNote: update.statusNote,
+      },
+    }));
   }
 
   // ----------------------------------------------------------------- staff
@@ -403,49 +476,65 @@ export class OrderWorkflowService {
         : 'xác nhận đã mua hàng',
     );
 
-    const itemUpdates = this.applyItemUpdates(order, dto.items);
-    if (itemUpdates.length > 0) {
-      await this.prisma.$transaction(itemUpdates);
-    }
-
     const note =
       dto.note ??
       (order.type === OrderType.PROXY_PAYMENT
         ? 'Đã thanh toán cho shop'
         : 'Nhân viên đã đặt mua trên sàn');
 
-    const moved = await this.advance(
-      await this.load(order.id),
-      OrderStatus.PURCHASED,
-      dto.purchaseOrderCode
-        ? `${note} (mã đơn sàn ${dto.purchaseOrderCode})`
-        : note,
-      {
-        purchaseOrderCode: dto.purchaseOrderCode?.trim() || undefined,
-        ...this.claim(order, userId),
-      },
-    );
+    // Line prices, the status move and any refund are one decision, so they go
+    // in one transaction. A refund that landed while the status change failed
+    // would leave the order looking unbought and the customer already repaid.
+    const moved = await this.prisma.$transaction(async (tx) => {
+      for (const update of this.itemUpdateArgs(order, dto.items)) {
+        await tx.orderItem.update(update);
+      }
 
-    // Lines that fell through — out of stock, or bought cheaper than quoted —
-    // leave the customer in credit. Give it back straight away rather than
-    // holding it until delivery.
-    const after = await this.amounts(moved);
-    if (after.overpaidCny > 0) {
-      await this.charge(
-        moved,
+      const withItems = await tx.order.findUniqueOrThrow({
+        where: { id: order.id },
+        include: ORDER_INCLUDE,
+      });
+
+      const advanced = await this.applyAdvance(
+        tx,
+        withItems,
+        OrderStatus.PURCHASED,
+        dto.purchaseOrderCode
+          ? `${note} (mã đơn sàn ${dto.purchaseOrderCode})`
+          : note,
+        {
+          purchaseOrderCode: dto.purchaseOrderCode?.trim() || undefined,
+          ...this.claim(order, userId),
+        },
+      );
+
+      // Lines that fell through — out of stock, or bought cheaper than quoted
+      // — leave the customer in credit. Give it back straight away rather than
+      // holding it until delivery.
+      const after = await this.amounts(advanced);
+      if (after.overpaidCny <= 0) return advanced;
+
+      await this.chargeIn(
+        tx,
+        advanced,
         WalletTransactionType.ORDER_REFUND,
         after.overpaidCny,
-        `Hoàn chênh lệch sau khi mua đơn ${moved.billOfLadingCode}`,
+        `Hoàn chênh lệch sau khi mua đơn ${advanced.billOfLadingCode}`,
         userId,
       );
-      await this.prisma.order.update({
-        where: { id: moved.id },
+      await tx.order.update({
+        where: { id: advanced.id },
         data: { depositAmount: { decrement: after.overpaidCny } },
       });
-    }
 
-    const fresh = await this.load(moved.id);
-    return { order: fresh, amounts: await this.amounts(fresh) };
+      return tx.order.findUniqueOrThrow({
+        where: { id: order.id },
+        include: ORDER_INCLUDE,
+      });
+    });
+
+    await this.announce(order, moved, OrderStatus.PURCHASED);
+    return { order: moved, amounts: await this.amounts(moved) };
   }
 
   /** Kho Trung Quốc nhận hàng, cân đo. */
@@ -554,33 +643,45 @@ export class OrderWorkflowService {
       throw new BadRequestException('Đơn hàng không còn khoản phải thu');
     }
 
-    await this.charge(
-      order,
-      WalletTransactionType.ORDER_PAYMENT,
-      amount,
-      dto.note ?? `Thanh toán đơn ${order.billOfLadingCode}`,
-      userId,
-    );
-
     const remaining = this.round(amounts.dueCny - amount);
-    const updated = await this.advance(
-      order,
-      remaining > 0 ? order.status : OrderStatus.PAID,
-      `Thu ¥${amount.toFixed(2)} từ ví khách${
-        remaining > 0 ? `, còn thiếu ¥${remaining.toFixed(2)}` : ''
-      }`,
-      {
-        walletPaidAmount: { increment: amount },
-        ...this.claim(order, userId),
-        ...(remaining > 0
-          ? {}
-          : {
-              paymentStatus: PaymentStatus.PAID,
-              paymentMethod: PaymentMethod.BALANCE,
-            }),
-      },
-    );
+    const to = remaining > 0 ? order.status : OrderStatus.PAID;
 
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const advanced = await this.applyAdvance(
+        tx,
+        order,
+        to,
+        `Thu ¥${amount.toFixed(2)} từ ví khách${
+          remaining > 0 ? `, còn thiếu ¥${remaining.toFixed(2)}` : ''
+        }`,
+        {
+          walletPaidAmount: { increment: amount },
+          ...this.claim(order, userId),
+          ...(remaining > 0
+            ? {}
+            : {
+                paymentStatus: PaymentStatus.PAID,
+                paymentMethod: PaymentMethod.BALANCE,
+              }),
+        },
+        // Two staff collecting at once would otherwise charge the wallet twice.
+        // The amount already collected must still be what we based this on.
+        { walletPaidAmount: order.walletPaidAmount },
+      );
+
+      await this.chargeIn(
+        tx,
+        order,
+        WalletTransactionType.ORDER_PAYMENT,
+        amount,
+        dto.note ?? `Thanh toán đơn ${order.billOfLadingCode}`,
+        userId,
+      );
+
+      return advanced;
+    });
+
+    await this.announce(order, updated, to);
     return { order: updated, amounts: await this.amounts(updated) };
   }
 
@@ -629,38 +730,49 @@ export class OrderWorkflowService {
     const refund = dto.refund ?? true;
     const paid = Number(order.depositAmount) + Number(order.walletPaidAmount);
 
-    if (refund && paid > 0) {
-      await this.charge(
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const advanced = await this.applyAdvance(
+        tx,
         order,
-        WalletTransactionType.ORDER_REFUND,
-        paid,
-        `Hoàn tiền huỷ đơn ${order.billOfLadingCode}: ${dto.reason}`,
-        userId,
+        OrderStatus.CANCELLED,
+        `Huỷ đơn: ${dto.reason}${
+          refund && paid > 0 ? ` — đã hoàn ¥${paid.toFixed(2)}` : ''
+        }`,
+        refund && paid > 0
+          ? {
+              depositAmount: 0,
+              walletPaidAmount: 0,
+              paymentStatus: PaymentStatus.REFUNDED,
+            }
+          : {},
       );
-    }
 
-    const updated = await this.advance(
-      order,
-      OrderStatus.CANCELLED,
-      `Huỷ đơn: ${dto.reason}${
-        refund && paid > 0 ? ` — đã hoàn ¥${paid.toFixed(2)}` : ''
-      }`,
-      refund && paid > 0
-        ? {
-            depositAmount: 0,
-            walletPaidAmount: 0,
-            paymentStatus: PaymentStatus.REFUNDED,
-          }
-        : {},
-    );
+      if (refund && paid > 0) {
+        await this.chargeIn(
+          tx,
+          order,
+          WalletTransactionType.ORDER_REFUND,
+          paid,
+          `Hoàn tiền huỷ đơn ${order.billOfLadingCode}: ${dto.reason}`,
+          userId,
+        );
+      }
 
+      return advanced;
+    });
+
+    await this.announce(order, updated, OrderStatus.CANCELLED);
     return { order: updated, amounts: await this.amounts(updated) };
   }
 
   async updateItems(id: string, dto: UpdateOrderItemsDto) {
     const order = await this.load(id);
-    const updates = this.applyItemUpdates(order, dto.items);
-    if (updates.length > 0) await this.prisma.$transaction(updates);
+    const updates = this.itemUpdateArgs(order, dto.items);
+    if (updates.length > 0) {
+      await this.prisma.$transaction(
+        updates.map((args) => this.prisma.orderItem.update(args)),
+      );
+    }
 
     const fresh = await this.load(order.id);
     return { order: fresh, amounts: await this.amounts(fresh) };
