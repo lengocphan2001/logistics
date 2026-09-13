@@ -13,6 +13,9 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { needsSourceProperties } from '../products/sku-properties.util';
+import { NotificationsService } from '../notifications/notifications.service';
+import { orderStatusLabels } from '../../common/enums/order-status-label';
+import type { CreateCustomerOrderDto } from './dto/create-customer-order.dto';
 import { WalletTransactionsService } from '../wallet-transactions/wallet-transactions.service';
 import { ProductsService } from '../products/products.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -39,6 +42,7 @@ export class OrdersService {
     private prisma: PrismaService,
     private walletTransactionsService: WalletTransactionsService,
     private productsService: ProductsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto, createdById: string) {
@@ -289,7 +293,7 @@ export class OrdersService {
     const feeExtra = rest.feeExtra ?? Number(order.feeExtra);
     const totalFee = feeTransfer + feeInsurance + feeExtra;
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id },
       data: {
         ...rest,
@@ -314,6 +318,17 @@ export class OrdersService {
       },
       include: ORDER_INCLUDE,
     });
+
+    // Only a real status change is worth interrupting the customer for; edits
+    // to fees or addresses are not.
+    if (status && status !== order.status) {
+      await this.notificationsService.notifyOrderStatusChange(
+        updated,
+        orderStatusLabels[status],
+      );
+    }
+
+    return updated;
   }
 
   async remove(id: string) {
@@ -441,6 +456,95 @@ export class OrdersService {
    * 3. Kiểm tra số dư ví
    * 4. Dùng prisma.$transaction: trừ ví (ORDER_DEPOSIT), tạo Order + OrderItem, xóa CartItem đã checkout
    */
+  /**
+   * A request the customer raises by hand: order-on-behalf, pay-on-behalf or
+   * consignment. Nothing is charged here. Staff price the request and take the
+   * deposit afterwards, which is why it opens at NEW_REQUEST with no deposit.
+   */
+  async createCustomerRequest(customerId: string, dto: CreateCustomerOrderDto) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { fullName: true },
+    });
+    if (!customer) throw new NotFoundException('Không tìm thấy khách hàng');
+
+    if (dto.type === OrderType.PROXY_ORDER && !dto.items?.length) {
+      throw new BadRequestException('Vui lòng thêm ít nhất một sản phẩm');
+    }
+    if (dto.type === OrderType.PROXY_PAYMENT && !dto.sourceOrderCode?.trim()) {
+      throw new BadRequestException('Vui lòng nhập mã đơn hàng trên sàn');
+    }
+    if (dto.type === OrderType.CONSIGNMENT && !dto.sourceTrackingCode?.trim()) {
+      throw new BadRequestException(
+        'Vui lòng nhập mã vận đơn nội địa Trung Quốc',
+      );
+    }
+
+    const items = dto.items ?? [];
+    const itemsTotalCny = items.reduce(
+      (sum, i) => sum + (i.priceCny ?? 0) * i.quantity,
+      0,
+    );
+    const declaredValue = dto.amountCny ?? itemsTotalCny;
+
+    const noteParts = [dto.note];
+    if (dto.shippingMethod) noteParts.push(`Vận chuyển: ${dto.shippingMethod}`);
+
+    const order = await this.prisma.order.create({
+      data: {
+        type: dto.type,
+        status: OrderStatus.NEW_REQUEST,
+        paymentStatus: 'UNPAID',
+        paymentMethod: 'BALANCE',
+        senderName: customer.fullName,
+        senderPhone: dto.receiverPhone,
+        senderAddress: 'Trung Quốc',
+        receiverName: dto.receiverName,
+        receiverPhone: dto.receiverPhone,
+        receiverAddress: dto.receiverAddress,
+        receiverProvince: dto.receiverProvince,
+        receiverDistrict: dto.receiverDistrict,
+        description: dto.description,
+        quantity: items.reduce((sum, i) => sum + i.quantity, 0) || 1,
+        declaredValue,
+        itemsTotalCny: itemsTotalCny || undefined,
+        sourceOrderCode: dto.sourceOrderCode?.trim() || undefined,
+        sourceTrackingCode: dto.sourceTrackingCode?.trim() || undefined,
+        note: noteParts.filter(Boolean).join(' | ') || undefined,
+        warehouseId: dto.vnWarehouseId,
+        customerId,
+        items: items.length
+          ? {
+              create: items.map((i) => ({
+                itemId: '',
+                providerAlias: '',
+                title: i.title,
+                url: i.url,
+                priceCny: i.priceCny ?? 0,
+                quantity: i.quantity,
+                totalCny: (i.priceCny ?? 0) * i.quantity,
+                properties: i.note ? [{ name: 'Ghi chú', value: i.note }] : [],
+              })),
+            }
+          : undefined,
+        events: {
+          create: {
+            status: OrderStatus.NEW_REQUEST,
+            note: 'Khách hàng gửi yêu cầu từ cổng khách hàng',
+          },
+        },
+      },
+      include: ORDER_INCLUDE,
+    });
+
+    await this.notificationsService.notifyNewOrders(
+      [order],
+      customer.fullName ?? 'Khách hàng',
+    );
+
+    return order;
+  }
+
   async checkoutCart(
     customerId: string,
     dto: import('./dto/checkout.dto').CheckoutDto,
@@ -620,6 +724,22 @@ export class OrdersService {
       const checkedOutIds = enrichedItems.map((i) => i.id);
       await tx.cartItem.deleteMany({ where: { id: { in: checkedOutIds } } });
     });
+
+    // Outside the transaction: a failed notification must not roll back a paid
+    // order.
+    const created = await this.prisma.order.findMany({
+      where: { id: { in: createdOrders } },
+      select: {
+        id: true,
+        billOfLadingCode: true,
+        customerId: true,
+        depositAmount: true,
+      },
+    });
+    await this.notificationsService.notifyNewOrders(
+      created,
+      customer.fullName ?? 'Khách hàng',
+    );
 
     return { success: true, orderIds: createdOrders };
   }

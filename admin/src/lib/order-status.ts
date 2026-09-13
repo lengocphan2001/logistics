@@ -1,4 +1,5 @@
 export type OrderStatus =
+  | 'NEW_REQUEST'
   | 'CANCELLED'
   | 'DEPOSIT_PAID'
   | 'PURCHASED'
@@ -11,6 +12,7 @@ export type OrderStatus =
   | 'DELIVERY_REQUESTED';
 
 export const ORDER_STATUSES: OrderStatus[] = [
+  'NEW_REQUEST',
   'DEPOSIT_PAID',
   'PURCHASED',
   'SHOP_SHIPPED',
@@ -24,6 +26,7 @@ export const ORDER_STATUSES: OrderStatus[] = [
 ];
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
+  NEW_REQUEST: 'Yêu cầu mới',
   CANCELLED: 'Đã hủy',
   DEPOSIT_PAID: 'Đặt cọc',
   PURCHASED: 'Đã mua hàng',
@@ -49,6 +52,8 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
  * ones, so progress still reads at a glance.
  */
 export const orderStatusBadgeColors: Record<OrderStatus, string> = {
+  NEW_REQUEST:
+    'border-[var(--seal-red)] bg-transparent text-[var(--seal-red)]',
   CANCELLED: 'border-[var(--rule-strong)] bg-[var(--wash)] text-[var(--graphite)]',
   DEPOSIT_PAID: 'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
   PURCHASED: 'border-[var(--manifest-navy)] bg-transparent text-[var(--manifest-navy)]',
@@ -63,6 +68,7 @@ export const orderStatusBadgeColors: Record<OrderStatus, string> = {
 
 /** Fill used in the dashboard status bar. Same four classes as the badges. */
 export const orderStatusBarColors: Record<OrderStatus, string> = {
+  NEW_REQUEST: 'bg-[var(--seal-red)]',
   CANCELLED: 'bg-[var(--rule-strong)]',
   DEPOSIT_PAID: 'bg-[var(--navy-wash)]',
   PURCHASED: 'bg-[var(--navy-wash)]',

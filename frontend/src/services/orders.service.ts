@@ -62,6 +62,32 @@ export interface CustomerOrderDetail extends CustomerOrder {
 
 const BASE = '/customer/orders';
 
+export interface CustomerOrderRequestItem {
+  title: string;
+  url?: string;
+  note?: string;
+  quantity: number;
+  priceCny?: number;
+}
+
+export interface CustomerOrderRequest {
+  type: 'PROXY_ORDER' | 'PROXY_PAYMENT' | 'CONSIGNMENT';
+  receiverName: string;
+  receiverPhone: string;
+  receiverAddress: string;
+  receiverProvince?: string;
+  receiverDistrict?: string;
+  note?: string;
+  cnWarehouseId?: string;
+  vnWarehouseId?: string;
+  shippingMethod?: string;
+  items?: CustomerOrderRequestItem[];
+  sourceOrderCode?: string;
+  amountCny?: number;
+  sourceTrackingCode?: string;
+  description?: string;
+}
+
 export const ordersService = {
   getMine: (params?: {
     page?: number;
@@ -74,4 +100,7 @@ export const ordersService = {
   getMyStats: () => api.get<CustomerOrderStats>(`${BASE}/stats`),
 
   getMyById: (id: string) => api.get<CustomerOrderDetail>(`${BASE}/${id}`),
+
+  createRequest: (payload: CustomerOrderRequest) =>
+    api.post<CustomerOrderDetail>(`${BASE}/request`, payload),
 };

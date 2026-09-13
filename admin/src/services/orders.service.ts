@@ -9,6 +9,10 @@ export type PaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED';
 export type PaymentMethod = 'COD' | 'BANK_TRANSFER' | 'BALANCE';
 
 export interface Order {
+  /** Mã đơn khách đã tạo trên sàn (thanh toán hộ). */
+  sourceOrderCode?: string | null;
+  /** Mã vận đơn nội địa Trung Quốc (ký gửi). */
+  sourceTrackingCode?: string | null;
   id: string;
   billOfLadingCode: string;
   type: OrderType;

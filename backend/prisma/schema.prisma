@@ -20,6 +20,7 @@ enum WarehouseCountry {
 }
 
 enum OrderStatus {
+  NEW_REQUEST
   CANCELLED
   DEPOSIT_PAID
   PURCHASED
@@ -75,6 +76,8 @@ enum NotificationType {
   WALLET_WITHDRAWAL_REQUEST
   WALLET_REQUEST_APPROVED
   WALLET_REQUEST_REJECTED
+  ORDER_CREATED
+  ORDER_STATUS_UPDATED
 }
 
 enum Gender {
@@ -202,6 +205,10 @@ model Order {
   shopName      String?  // Tên shop nguồn
   shopUrl       String?  // Link shop nguồn
   itemsTotalCny Decimal? @db.Decimal(18, 2) // Tổng giá hàng (¥)
+
+  // --- Khách tự cung cấp (ký gửi / thanh toán hộ) ---
+  sourceTrackingCode String? // Mã vận đơn nội địa Trung Quốc (ký gửi)
+  sourceOrderCode    String? // Mã đơn trên sàn (thanh toán hộ)
 
   events OrderEvent[]
   walletTransactions WalletTransaction[]
@@ -348,6 +355,7 @@ model Notification {
   message             String
   link                String?
   walletTransactionId String?
+  orderId             String?
   readAt              DateTime?
   createdAt           DateTime                  @default(now())
 

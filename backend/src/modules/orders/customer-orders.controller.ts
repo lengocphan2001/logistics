@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CustomerAccountGuard } from '../../common/guards/customer-account.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CheckoutDto } from './dto/checkout.dto';
+import { CreateCustomerOrderDto } from './dto/create-customer-order.dto';
 
 @Controller('customer/orders')
 @UseGuards(JwtAuthGuard, CustomerAccountGuard)
@@ -47,6 +48,15 @@ export class CustomerOrdersController {
   @Post('checkout')
   checkout(@CurrentUser() user: { id: string }, @Body() dto: CheckoutDto) {
     return this.ordersService.checkoutCart(user.id, dto);
+  }
+
+  /** Yêu cầu đặt hàng hộ, thanh toán hộ hoặc ký gửi. */
+  @Post('request')
+  createRequest(
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateCustomerOrderDto,
+  ) {
+    return this.ordersService.createCustomerRequest(user.id, dto);
   }
 
   @Get(':id')

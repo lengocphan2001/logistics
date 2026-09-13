@@ -7,6 +7,7 @@ import {
   Notification,
   NotificationRecipientType,
   NotificationType,
+  OrderStatus,
   Role,
   WalletTransactionType,
 } from '@prisma/client';
@@ -28,6 +29,17 @@ const MANUAL_WALLET_TYPES: WalletTransactionType[] = [
   WalletTransactionType.DEPOSIT,
   WalletTransactionType.WITHDRAWAL,
 ];
+
+/** Staff who should hear about a new customer order. */
+const ORDER_STAFF_ROLES: Role[] = [Role.ADMIN, Role.SALES];
+
+type OrderForNotification = {
+  id: string;
+  billOfLadingCode: string;
+  customerId?: string | null;
+  depositAmount?: { toString(): string } | null;
+  customer?: { fullName: string } | null;
+};
 
 @Injectable()
 export class NotificationsService {
@@ -169,6 +181,71 @@ export class NotificationsService {
       orderBy: { createdAt: 'desc' },
     });
     this.emitMany(created);
+  }
+
+  /**
+   * A customer checkout produces one order per shop, so this takes the whole
+   * batch and tells every active ADMIN and SALES user once per order.
+   */
+  async notifyNewOrders(orders: OrderForNotification[], customerName: string) {
+    if (orders.length === 0) return;
+
+    const staffUsers = await this.prisma.user.findMany({
+      where: { role: { in: ORDER_STAFF_ROLES }, status: 'ACTIVE' },
+      select: { id: true },
+    });
+
+    if (staffUsers.length === 0) return;
+
+    const rows = orders.flatMap((order) =>
+      staffUsers.map((user) => ({
+        recipientType: NotificationRecipientType.USER,
+        recipientId: user.id,
+        type: NotificationType.ORDER_CREATED,
+        title: 'Đơn hàng mới',
+        message: `${customerName} vừa đặt đơn ${order.billOfLadingCode}${
+          order.depositAmount ? `, đã cọc ${Number(order.depositAmount)}¥` : ''
+        }`,
+        link: `/orders/${order.id}`,
+        orderId: order.id,
+      })),
+    );
+
+    await this.prisma.notification.createMany({ data: rows });
+
+    const created = await this.prisma.notification.findMany({
+      where: {
+        orderId: { in: orders.map((o) => o.id) },
+        type: NotificationType.ORDER_CREATED,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: rows.length,
+    });
+    this.emitMany(created);
+  }
+
+  /**
+   * Sent to the customer when staff move an order to a new status. Orders
+   * without a customer account (walk-in) have nobody to notify.
+   */
+  async notifyOrderStatusChange(
+    order: OrderForNotification & { status: OrderStatus },
+    statusLabel: string,
+  ) {
+    if (!order.customerId) return;
+
+    const notification = await this.prisma.notification.create({
+      data: {
+        recipientType: NotificationRecipientType.CUSTOMER,
+        recipientId: order.customerId,
+        type: NotificationType.ORDER_STATUS_UPDATED,
+        title: 'Đơn hàng được cập nhật',
+        message: `Đơn ${order.billOfLadingCode} chuyển sang trạng thái: ${statusLabel}`,
+        link: `/orders/${order.id}`,
+        orderId: order.id,
+      },
+    });
+    this.emitOne(notification);
   }
 
   private emitMany(notifications: Notification[]) {

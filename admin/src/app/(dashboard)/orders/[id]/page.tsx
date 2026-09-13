@@ -152,6 +152,29 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {(order.sourceOrderCode || order.sourceTrackingCode) && (
+          /* Codes the customer supplied. Staff need them verbatim, so they are
+             shown in mono and never translated. */
+          <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
+            {order.sourceOrderCode && (
+              <div>
+                <p className="text-xs text-[var(--graphite)]">Mã đơn trên sàn</p>
+                <p className="font-mono text-sm font-semibold">{order.sourceOrderCode}</p>
+              </div>
+            )}
+            {order.sourceTrackingCode && (
+              <div>
+                <p className="text-xs text-[var(--graphite)]">
+                  Mã vận đơn nội địa Trung Quốc
+                </p>
+                <p className="font-mono text-sm font-semibold">
+                  {order.sourceTrackingCode}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
           <div>
             <p className="text-xs text-[var(--graphite)]">Phí vận chuyển</p>

@@ -1,4 +1,5 @@
 export type OrderStatus =
+  | 'NEW_REQUEST'
   | 'CANCELLED'
   | 'DEPOSIT_PAID'
   | 'PURCHASED'
@@ -11,6 +12,7 @@ export type OrderStatus =
   | 'DELIVERY_REQUESTED';
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
+  NEW_REQUEST: 'Yêu cầu mới',
   CANCELLED: 'Đã hủy',
   DEPOSIT_PAID: 'Đặt cọc',
   PURCHASED: 'Đã mua hàng',
@@ -36,6 +38,8 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
  * ones, so progress still reads at a glance.
  */
 export const orderStatusBadgeColors: Record<OrderStatus, string> = {
+  NEW_REQUEST:
+    'border-[var(--seal-red)] bg-transparent text-[var(--seal-red)]',
   CANCELLED:
     'border-[var(--rule-strong)] bg-[var(--wash)] text-[var(--graphite)]',
   DEPOSIT_PAID:

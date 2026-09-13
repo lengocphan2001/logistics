@@ -11,8 +11,16 @@ import {
 import { playNotificationSound, unlockNotificationAudio } from '@/lib/notification-sound';
 import { createNotificationSocket } from '@/lib/notification-socket';
 import { getToken } from '@/lib/auth';
+import { customerProfileKey } from '@/hooks/use-customer-profile';
 
 const SOUND_TYPES: NotificationType[] = [
+  'WALLET_REQUEST_APPROVED',
+  'WALLET_REQUEST_REJECTED',
+  'ORDER_STATUS_UPDATED',
+];
+
+/** Notifications that mean the wallet balance on screen is out of date. */
+const BALANCE_TYPES: NotificationType[] = [
   'WALLET_REQUEST_APPROVED',
   'WALLET_REQUEST_REJECTED',
 ];
@@ -76,6 +84,10 @@ export function useNotifications(open: boolean) {
           };
         },
       );
+
+      if (BALANCE_TYPES.includes(notification.type)) {
+        void queryClient.invalidateQueries({ queryKey: customerProfileKey });
+      }
 
       if (readyRef.current && SOUND_TYPES.includes(notification.type)) {
         playNotificationSound();

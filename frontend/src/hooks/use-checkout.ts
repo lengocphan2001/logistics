@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cartService } from '@/services/cart.service';
 import { warehousesService } from '@/services/warehouses.service';
 import { useCartStore } from '@/stores/cart.store';
-import { useCustomerProfile } from '@/hooks/use-customer-profile';
+import { customerProfileKey, useCustomerProfile } from '@/hooks/use-customer-profile';
 import { useExchangeRate } from '@/hooks/use-exchange-rate';
 import { groupCartByShop } from '@/lib/cart-groups';
 import { PURCHASE_FEE_RATE, SHIPPING_METHODS } from '@/config/shop.config';
@@ -45,6 +45,7 @@ const EMPTY_FORM: CheckoutForm = {
  * stored form only ever holds real edits.
  */
 export function useCheckout(selectedIds: string[]) {
+  const queryClient = useQueryClient();
   const invalidate = useCartStore((s) => s.invalidate);
   const { profile } = useCustomerProfile();
   const { vndPerCny } = useExchangeRate();
@@ -142,6 +143,9 @@ export function useCheckout(selectedIds: string[]) {
           form.shippingMethod,
       });
       invalidate();
+      // The deposit was taken from the wallet, so the balance in the top bar
+      // is now stale.
+      void queryClient.invalidateQueries({ queryKey: customerProfileKey });
       setOrderIds(result.orderIds);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Đặt hàng thất bại'));

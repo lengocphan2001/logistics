@@ -15,6 +15,7 @@ import { getToken } from '@/lib/auth';
 const SOUND_TYPES: NotificationType[] = [
   'WALLET_DEPOSIT_REQUEST',
   'WALLET_WITHDRAWAL_REQUEST',
+  'ORDER_CREATED',
 ];
 
 function unwrap<T>(payload: { data?: T } | T): T {

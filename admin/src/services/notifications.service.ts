@@ -5,7 +5,9 @@ export type NotificationType =
   | 'WALLET_DEPOSIT_REQUEST'
   | 'WALLET_WITHDRAWAL_REQUEST'
   | 'WALLET_REQUEST_APPROVED'
-  | 'WALLET_REQUEST_REJECTED';
+  | 'WALLET_REQUEST_REJECTED'
+  | 'ORDER_CREATED'
+  | 'ORDER_STATUS_UPDATED';
 
 export interface Notification {
   id: string;
@@ -14,6 +16,7 @@ export interface Notification {
   message: string;
   link?: string | null;
   walletTransactionId?: string | null;
+  orderId?: string | null;
   readAt?: string | null;
   createdAt: string;
 }
