@@ -125,10 +125,11 @@ export default function CartPage() {
 
       {/* The only element allowed to float, because it must stay reachable
           while the list scrolls. */}
-      <div className="sticky bottom-3 border border-[var(--rule)] bg-[var(--sheet-white)] p-4 shadow-[var(--lift)] sm:bottom-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="sticky bottom-3 border border-[var(--rule)] bg-[var(--sheet-white)] p-3 shadow-[var(--lift)] sm:bottom-4 sm:p-4">
+        {/* One row on phones too, so the bar does not cover half the list. */}
+        <div className="flex items-center justify-between gap-3 sm:items-end sm:gap-4">
           <div className="min-w-0">
-            <p className="text-sm text-[var(--graphite)]">
+            <p className="text-xs text-[var(--graphite)] sm:text-sm">
               Đã chọn{' '}
               <span data-numeric className="font-semibold text-[var(--ink)]">
                 {selectedItems.length}
@@ -136,13 +137,13 @@ export default function CartPage() {
               trên{' '}
               <span data-numeric>{cart.items.length}</span> sản phẩm
             </p>
-            <p data-numeric className="text-2xl font-bold text-[var(--seal-red)]">
+            <p data-numeric className="text-lg font-bold text-[var(--seal-red)] sm:text-2xl">
               {formatVnd(selectedTotalVnd)}
             </p>
-            <p data-numeric className="text-sm text-[var(--graphite)]">
+            <p data-numeric className="text-xs text-[var(--graphite)] sm:text-sm">
               {formatCny(selectedTotalCny)}
             </p>
-            <p data-prose className="mt-1 text-xs">
+            <p data-prose className="mt-1 hidden text-xs sm:block">
               Chưa gồm phí vận chuyển và dịch vụ.
             </p>
           </div>
@@ -150,7 +151,7 @@ export default function CartPage() {
             variant="commerce"
             size="lg"
             disabled={selectedItems.length === 0}
-            className="w-full sm:w-auto sm:min-w-[200px]"
+            className="shrink-0 sm:min-w-[200px]"
             onClick={() =>
               router.push(`/checkout?items=${Array.from(selectedIds).join(',')}`)
             }

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, PackageSearch, Search } from 'lucide-react';
 import { productsService } from '@/services/products.service';
 import { useExchangeRate } from '@/hooks/use-exchange-rate';
+import { CategoryChips } from '@/components/shop/CategoryChips';
 import { CategorySidebar } from '@/components/shop/CategorySidebar';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { Button } from '@/components/ui/button';
@@ -143,6 +144,14 @@ function ShopContent() {
           </div>
         </div>
 
+        <div className="mt-3 lg:hidden">
+          <CategoryChips
+            selectedId={categoryId}
+            provider={provider}
+            onSelect={handleCategorySelect}
+          />
+        </div>
+
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-1 gap-2 lg:max-w-xl">
             <div className="relative min-w-0 flex-1">
@@ -158,7 +167,7 @@ function ShopContent() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="h-10 w-full rounded-[var(--radius-control)] border border-[var(--rule-strong)] bg-[var(--sheet-white)] pl-9 pr-3 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--graphite)]/75 hover:border-[var(--graphite)] focus-visible:border-[var(--manifest-navy)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)]"
+                className="h-10 w-full rounded-[var(--radius-control)] border border-[var(--rule-strong)] bg-[var(--sheet-white)] pl-9 pr-3 text-base text-[var(--ink)] outline-none placeholder:text-[var(--graphite)]/75 hover:border-[var(--graphite)] focus-visible:border-[var(--manifest-navy)] focus-visible:outline-2 sm:text-sm focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)]"
               />
             </div>
             <Button onClick={handleSearch}>Tìm kiếm</Button>
@@ -194,7 +203,7 @@ function ShopContent() {
             <EmptyState
               icon={PackageSearch}
               title="Nhập từ khóa để bắt đầu"
-              hint="Hoặc chọn một danh mục ở cột bên trái để duyệt theo ngành hàng."
+              hint="Hoặc chọn một danh mục để duyệt theo ngành hàng."
             />
           ) : isLoading ? (
             <LoadingState label="Đang tải sản phẩm" />

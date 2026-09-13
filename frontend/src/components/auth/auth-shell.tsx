@@ -32,18 +32,18 @@ export function AuthShell({
           data-chrome
           className="auth-hero relative shrink-0 lg:flex lg:min-h-screen lg:w-[42%]"
         >
-          <div className="relative z-10 flex flex-col justify-center px-6 py-12 sm:px-10 lg:h-full lg:px-14">
-            <Link href="/" className="mb-10 inline-flex items-baseline gap-2 lg:mb-14">
+          <div className="relative z-10 flex flex-col justify-center px-5 py-8 sm:px-10 sm:py-12 lg:h-full lg:px-14">
+            <Link href="/" className="mb-6 inline-flex items-baseline gap-2 sm:mb-10 lg:mb-14">
               <span className="font-heading text-[1.0625rem] font-bold tracking-[-0.02em] text-white">
                 Taman Logistics
               </span>
               <span className="text-xs text-white/75">Trung Quốc và Việt Nam</span>
             </Link>
 
-            <h2 className="max-w-md text-3xl font-bold leading-tight text-white sm:text-4xl">
+            <h2 className="max-w-md text-2xl font-bold leading-tight text-white sm:text-4xl">
               {heroTitle}
             </h2>
-            <p className="mt-4 max-w-sm text-base leading-relaxed text-white/80">
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/80 sm:mt-4 sm:text-base">
               {heroSubtitle}
             </p>
           </div>

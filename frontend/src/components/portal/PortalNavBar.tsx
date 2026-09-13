@@ -92,6 +92,19 @@ export function PortalNavBar() {
   const cartCount = useCartStore((s) => s.itemCount());
   const beat = useTally(cartCount);
 
+  // On narrow screens the bar scrolls sideways; keep the current section in view.
+  const listRef = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    const list = listRef.current;
+    const active = list?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!list || !active) return;
+    const listBox = list.getBoundingClientRect();
+    const activeBox = active.getBoundingClientRect();
+    if (activeBox.left < listBox.left || activeBox.right > listBox.right) {
+      list.scrollLeft += activeBox.left - listBox.left - (listBox.width - activeBox.width) / 2;
+    }
+  }, [pathname, searchParams]);
+
   // Load cart count once authenticated
   useEffect(() => {
     if (isAuthenticated) fetchCart();
@@ -104,7 +117,7 @@ export function PortalNavBar() {
       className="portal-nav-bar border-b border-[var(--navy-deep)]"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <ul className="flex gap-1 overflow-x-auto scroll-x-clean">
+        <ul ref={listRef} className="flex overflow-x-auto scroll-x-clean sm:gap-1">
           {navItems.map((item) => {
             const active = isNavActive(pathname, searchParams, item, navItems);
             const Icon = portalNavIcons[item.icon];
@@ -116,7 +129,7 @@ export function PortalNavBar() {
                   title={item.label}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'relative inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium sm:px-4',
+                    'relative inline-flex shrink-0 items-center gap-2 border-b-2 px-2.5 py-3 text-sm font-medium sm:px-4',
                     active
                       ? 'border-white text-white'
                       : 'border-transparent text-white/70 hover:text-white',

@@ -13,6 +13,9 @@ import { apiErrorMessage } from '@/lib/api-error';
 import { icon } from '@/lib/icon';
 import { cn } from '@/lib/utils';
 
+/** Grid template for the cart header and rows from the medium breakpoint up. */
+export const CART_ROW_COLUMNS = 'md:grid-cols-[2.5rem_minmax(0,1fr)_7rem_7rem_8rem_2.5rem]';
+
 type CartItemRowProps = {
   item: CartItem;
   vndPerCny: number;
@@ -109,8 +112,14 @@ export function CartItemRow({
   const noteId = `note-${item.id}`;
 
   return (
-    <tr className={cn('border-b border-[var(--rule)]', selected && 'bg-[var(--navy-wash)]/40')}>
-      <td className="px-2 py-4 text-center align-top">
+    <li
+      className={cn(
+        'grid grid-cols-[1rem_minmax(0,1fr)] gap-x-3 gap-y-3 border-b border-[var(--rule)] px-3 py-4 last:border-b-0 md:gap-x-0 md:gap-y-0 md:px-0',
+        CART_ROW_COLUMNS,
+        selected && 'bg-[var(--navy-wash)]/40',
+      )}
+    >
+      <div className="pt-0.5 md:px-2 md:text-center">
         <input
           type="checkbox"
           checked={selected}
@@ -118,8 +127,8 @@ export function CartItemRow({
           aria-label={`Chọn ${item.title}`}
           className="size-4 cursor-pointer accent-[var(--manifest-navy)]"
         />
-      </td>
-      <td className="px-3 py-4 align-top">
+      </div>
+      <div className="min-w-0 md:px-3">
         <div className="flex gap-3">
           <ProductImage src={item.image} fallbackIcon="control" className="size-16 shrink-0" />
           <div className="min-w-0 flex-1 space-y-1.5">
@@ -129,6 +138,10 @@ export function CartItemRow({
             {propsText && (
               <p className="text-xs text-[var(--graphite)]">Phân loại: {propsText}</p>
             )}
+            <p data-numeric className="text-xs text-[var(--graphite)] md:hidden">
+              Đơn giá {formatCny(Number(item.priceCny))} (
+              {formatVnd(cnyToVnd(item.priceCny, vndPerCny))})
+            </p>
             <div>
               <label htmlFor={noteId} className="text-xs text-[var(--graphite)]">
                 Ghi chú
@@ -139,14 +152,16 @@ export function CartItemRow({
                 onChange={(e) => setNote(e.target.value)}
                 onBlur={saveNote}
                 placeholder="Ghi chú cho sản phẩm"
-                className="mt-1 h-8 text-xs"
+                className="mt-1 h-8 text-base sm:text-xs"
               />
             </div>
           </div>
         </div>
-      </td>
-      <td className="px-2 py-4 align-top">
-        <div className="flex justify-center">
+      </div>
+      {/* Phones: quantity, line total and delete share one row under the
+          product. From md up the wrapper dissolves into the grid columns. */}
+      <div className="col-start-2 flex items-center gap-3 md:contents">
+        <div className="md:flex md:items-start md:justify-center md:px-2">
           <QuantityStepper
             value={qty}
             variant="input"
@@ -158,36 +173,36 @@ export function CartItemRow({
             onCommit={commitQty}
           />
         </div>
-      </td>
-      <td className="px-2 py-4 text-right align-top text-xs">
-        <p data-numeric className="font-semibold text-[var(--ink)]">
-          {formatCny(Number(item.priceCny))}
-        </p>
-        <p data-numeric className="text-[var(--graphite)]">
-          {formatVnd(cnyToVnd(item.priceCny, vndPerCny))}
-        </p>
-      </td>
-      <td
-        data-numeric
-        className="px-2 py-4 text-right align-top text-sm font-bold text-[var(--ink)]"
-      >
-        {formatVnd(lineVnd)}
-      </td>
-      <td className="px-2 py-4 text-center align-top">
-        <button
-          type="button"
-          aria-label={`Xóa ${item.title}`}
-          disabled={removing}
-          onClick={handleRemove}
-          className="inline-flex size-8 items-center justify-center rounded-[var(--radius-control)] text-[var(--graphite)] hover:bg-[var(--red-wash)] hover:text-[var(--seal-red)]"
+        <div className="hidden px-2 text-right text-xs md:block">
+          <p data-numeric className="font-semibold text-[var(--ink)]">
+            {formatCny(Number(item.priceCny))}
+          </p>
+          <p data-numeric className="text-[var(--graphite)]">
+            {formatVnd(cnyToVnd(item.priceCny, vndPerCny))}
+          </p>
+        </div>
+        <p
+          data-numeric
+          className="ml-auto text-sm font-bold text-[var(--ink)] md:ml-0 md:px-2 md:text-right"
         >
-          {removing ? (
-            <Loader2 {...icon('inline')} aria-hidden className="animate-spin" />
-          ) : (
-            <Trash2 {...icon('inline')} aria-hidden />
-          )}
-        </button>
-      </td>
-    </tr>
+          {formatVnd(lineVnd)}
+        </p>
+        <div className="md:px-2 md:text-center">
+          <button
+            type="button"
+            aria-label={`Xóa ${item.title}`}
+            disabled={removing}
+            onClick={handleRemove}
+            className="inline-flex size-8 items-center justify-center rounded-[var(--radius-control)] text-[var(--graphite)] hover:bg-[var(--red-wash)] hover:text-[var(--seal-red)]"
+          >
+            {removing ? (
+              <Loader2 {...icon('inline')} aria-hidden className="animate-spin" />
+            ) : (
+              <Trash2 {...icon('inline')} aria-hidden />
+            )}
+          </button>
+        </div>
+      </div>
+    </li>
   );
 }

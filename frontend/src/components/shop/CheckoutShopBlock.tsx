@@ -7,11 +7,15 @@ import { formatProperties } from '@/components/shop/product-display.utils';
 import type { ShopGroup } from '@/lib/cart-groups';
 import { cnyToVnd, formatCny, formatVnd } from '@/lib/currency';
 import { icon } from '@/lib/icon';
+import { cn } from '@/lib/utils';
 
 interface CheckoutShopBlockProps {
   group: ShopGroup;
   vndPerCny: number;
 }
+
+/** Column template shared by the header and every row from the medium breakpoint up. */
+const ROW_COLUMNS = 'md:grid-cols-[minmax(0,1fr)_5.5rem_8rem_8rem]';
 
 export function CheckoutShopBlock({ group, vndPerCny }: CheckoutShopBlockProps) {
   const shopTotalVnd = group.items.reduce(
@@ -28,31 +32,25 @@ export function CheckoutShopBlock({ group, vndPerCny }: CheckoutShopBlockProps) 
         </h2>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] text-sm">
-          <thead>
-            <tr className="border-b border-[var(--rule)] text-xs text-[var(--graphite)]">
-              <th scope="col" className="px-4 py-2.5 text-left font-medium">
-                Sản phẩm
-              </th>
-              <th scope="col" className="w-16 px-2 py-2.5 text-center font-medium">
-                Số lượng
-              </th>
-              <th scope="col" className="w-32 px-3 py-2.5 text-right font-medium">
-                Đơn giá
-              </th>
-              <th scope="col" className="w-32 px-4 py-2.5 text-right font-medium">
-                Thành tiền
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {group.items.map((item) => (
-              <CheckoutItemRow key={item.id} item={item} vndPerCny={vndPerCny} />
-            ))}
-          </tbody>
-        </table>
+      {/* Phones get stacked rows instead of a table that scrolls sideways. */}
+      <div
+        aria-hidden
+        className={cn(
+          'hidden border-b border-[var(--rule)] py-2.5 text-xs font-medium text-[var(--graphite)] md:grid',
+          ROW_COLUMNS,
+        )}
+      >
+        <span className="px-4">Sản phẩm</span>
+        <span className="px-2 text-center">Số lượng</span>
+        <span className="px-3 text-right">Đơn giá</span>
+        <span className="px-4 text-right">Thành tiền</span>
       </div>
+
+      <ul>
+        {group.items.map((item) => (
+          <CheckoutItemRow key={item.id} item={item} vndPerCny={vndPerCny} />
+        ))}
+      </ul>
 
       <div className="flex items-baseline justify-end gap-3 border-t border-[var(--rule)] px-4 py-3 text-sm">
         <span className="text-[var(--graphite)]">Tiền hàng shop</span>
@@ -77,8 +75,13 @@ function CheckoutItemRow({
   const propsText = formatProperties(item.properties);
 
   return (
-    <tr className="border-b border-[var(--rule)] last:border-b-0">
-      <td className="px-4 py-4 align-top">
+    <li
+      className={cn(
+        'grid gap-y-2 border-b border-[var(--rule)] px-4 py-4 text-sm last:border-b-0 md:gap-y-0 md:px-0',
+        ROW_COLUMNS,
+      )}
+    >
+      <div className="min-w-0 md:px-4">
         <div className="flex gap-3">
           <ProductImage src={item.image} fallbackIcon="control" className="size-16 shrink-0" />
           <div className="min-w-0 flex-1 space-y-1">
@@ -97,29 +100,29 @@ function CheckoutItemRow({
             {item.note && (
               <p className="text-xs text-[var(--graphite)]">Ghi chú: {item.note}</p>
             )}
+            <p data-numeric className="text-xs text-[var(--graphite)] md:hidden">
+              {item.quantity} × {formatCny(unitCny)} ({formatVnd(unitVnd)})
+            </p>
           </div>
         </div>
-      </td>
-      <td
+      </div>
+      <p
         data-numeric
-        className="px-2 py-4 text-center align-top font-medium text-[var(--ink)]"
+        className="hidden px-2 text-center font-medium text-[var(--ink)] md:block"
       >
         {item.quantity}
-      </td>
-      <td className="px-3 py-4 text-right align-top text-xs">
+      </p>
+      <div className="hidden px-3 text-right text-xs md:block">
         <p data-numeric className="font-semibold text-[var(--ink)]">
           {formatCny(unitCny)}
         </p>
         <p data-numeric className="text-[var(--graphite)]">
           {formatVnd(unitVnd)}
         </p>
-      </td>
-      <td
-        data-numeric
-        className="px-4 py-4 text-right align-top text-sm font-bold text-[var(--ink)]"
-      >
+      </div>
+      <p data-numeric className="text-right text-sm font-bold text-[var(--ink)] md:px-4">
         {formatVnd(lineVnd)}
-      </td>
-    </tr>
+      </p>
+    </li>
   );
 }

@@ -84,7 +84,7 @@ export function QuantityStepper({
             if (e.key === 'Enter') e.currentTarget.blur();
           }}
           data-numeric
-          className="h-8 w-12 border-x border-[var(--rule-strong)] bg-transparent text-center text-sm outline-none [appearance:textfield] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--manifest-navy)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="h-8 w-12 border-x border-[var(--rule-strong)] bg-transparent text-center text-base outline-none sm:text-sm [appearance:textfield] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--manifest-navy)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
       ) : (
         <span

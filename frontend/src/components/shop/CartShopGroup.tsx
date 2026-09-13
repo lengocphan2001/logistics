@@ -3,12 +3,13 @@
 import { useMemo, useState } from 'react';
 import { Loader2, Store, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { CartItemRow } from '@/components/shop/CartItemRow';
+import { CART_ROW_COLUMNS, CartItemRow } from '@/components/shop/CartItemRow';
 import { cartService } from '@/services/cart.service';
 import { OPTIONAL_SERVICES } from '@/config/shop.config';
 import type { ShopGroup } from '@/lib/cart-groups';
 import { cnyToVnd, formatVnd } from '@/lib/currency';
 import { icon } from '@/lib/icon';
+import { cn } from '@/lib/utils';
 
 interface CartShopGroupProps {
   group: ShopGroup;
@@ -95,44 +96,35 @@ export function CartShopGroup({
       </div>
 
       <div className="flex flex-col lg:flex-row">
-        <div className="min-w-0 flex-1 overflow-x-auto">
-          <table className="w-full min-w-[660px] text-sm">
-            <thead>
-              <tr className="border-b border-[var(--rule)] text-xs text-[var(--graphite)]">
-                <th scope="col" className="w-10 px-2 py-2.5">
-                  <span className="sr-only">Chọn</span>
-                </th>
-                <th scope="col" className="px-3 py-2.5 text-left font-medium">
-                  Sản phẩm
-                </th>
-                <th scope="col" className="w-28 px-2 py-2.5 text-center font-medium">
-                  Số lượng
-                </th>
-                <th scope="col" className="w-28 px-2 py-2.5 text-right font-medium">
-                  Đơn giá
-                </th>
-                <th scope="col" className="w-32 px-2 py-2.5 text-right font-medium">
-                  Thành tiền
-                </th>
-                <th scope="col" className="w-10 px-2 py-2.5">
-                  <span className="sr-only">Xóa</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {group.items.map((item) => (
-                <CartItemRow
-                  key={item.id}
-                  item={item}
-                  vndPerCny={vndPerCny}
-                  selected={selectedIds.has(item.id)}
-                  onToggle={() => onToggleItem(item.id)}
-                  onRemove={() => onRemoveItem(item.id)}
-                  onRefresh={onRefresh}
-                />
-              ))}
-            </tbody>
-          </table>
+        <div className="min-w-0 flex-1 text-sm">
+          {/* Column labels only exist where there are columns; phones get stacked rows. */}
+          <div
+            aria-hidden
+            className={cn(
+              'hidden border-b border-[var(--rule)] py-2.5 text-xs font-medium text-[var(--graphite)] md:grid',
+              CART_ROW_COLUMNS,
+            )}
+          >
+            <span />
+            <span className="px-3">Sản phẩm</span>
+            <span className="px-2 text-center">Số lượng</span>
+            <span className="px-2 text-right">Đơn giá</span>
+            <span className="px-2 text-right">Thành tiền</span>
+            <span />
+          </div>
+          <ul>
+            {group.items.map((item) => (
+              <CartItemRow
+                key={item.id}
+                item={item}
+                vndPerCny={vndPerCny}
+                selected={selectedIds.has(item.id)}
+                onToggle={() => onToggleItem(item.id)}
+                onRemove={() => onRemoveItem(item.id)}
+                onRefresh={onRefresh}
+              />
+            ))}
+          </ul>
         </div>
 
         <aside className="w-full shrink-0 border-t border-[var(--rule)] bg-[var(--wash)]/60 p-4 lg:w-60 lg:border-l lg:border-t-0">

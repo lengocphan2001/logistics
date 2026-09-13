@@ -42,6 +42,8 @@ export function PortalTopBar() {
     router.push('/login');
   };
 
+  const rateLabel = `1¥ = ${formatVnd(vndPerCny).replace('₫', '').trim()}đ`;
+
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = term.trim();
@@ -62,7 +64,7 @@ export function PortalTopBar() {
         onChange={(e) => setTerm(e.target.value)}
         placeholder="Tìm sản phẩm trên Taobao, 1688, JD"
         aria-label="Tìm sản phẩm"
-        className="h-10 w-full rounded-[var(--radius-control)] border border-[var(--rule-strong)] bg-[var(--dock-grey)] pl-9 pr-3 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--graphite)]/75 hover:border-[var(--graphite)] focus-visible:border-[var(--manifest-navy)] focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)]"
+        className="h-10 w-full rounded-[var(--radius-control)] border border-[var(--rule-strong)] bg-[var(--dock-grey)] pl-9 pr-3 text-base text-[var(--ink)] outline-none sm:text-sm placeholder:text-[var(--graphite)]/75 hover:border-[var(--graphite)] focus-visible:border-[var(--manifest-navy)] focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--manifest-navy)]"
       />
     </form>
   );
@@ -95,7 +97,7 @@ export function PortalTopBar() {
                 {rateLoading ? (
                   <Skeleton className="inline-block h-4 w-20 align-middle" />
                 ) : (
-                  `1¥ = ${formatVnd(vndPerCny).replace('₫', '').trim()}đ`
+                  rateLabel
                 )}
               </dd>
             </div>
@@ -136,6 +138,21 @@ export function PortalTopBar() {
               />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {/* The header strip hides rate and balance on phones; they live here instead. */}
+              <dl className="mb-1 space-y-1 border-b border-[var(--rule)] px-2 pb-2 pt-1.5 text-xs sm:hidden">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--graphite)]">Số dư ví</dt>
+                  <dd data-numeric className="font-semibold text-[var(--ink)]">
+                    {profileLoading ? '—' : formatCny(balance)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--graphite)]">Tỉ giá</dt>
+                  <dd data-numeric className="font-semibold text-[var(--ink)]">
+                    {rateLoading ? '—' : rateLabel}
+                  </dd>
+                </div>
+              </dl>
               <DropdownMenuItem onClick={() => router.push('/profile')}>
                 <User {...icon('inline')} aria-hidden />
                 Hồ sơ cá nhân
