@@ -165,6 +165,8 @@ export class OrderWorkflowService {
     to: OrderStatus,
     note: string,
     data: Prisma.OrderUncheckedUpdateInput = {},
+    /** Thay câu thông báo mặc định khi tên trạng thái chưa đủ rõ cho khách. */
+    customerMessage?: { title: string; message: string },
   ): Promise<OrderRow> {
     assertTransition(order.type, order.status, to, orderTypeLabels[order.type]);
 
@@ -180,7 +182,13 @@ export class OrderWorkflowService {
       include: ORDER_INCLUDE,
     });
 
-    if (to !== order.status) {
+    if (customerMessage) {
+      await this.notificationsService.notifyOrderMessage(
+        updated,
+        customerMessage.title,
+        customerMessage.message,
+      );
+    } else if (to !== order.status) {
       await this.notificationsService.notifyOrderStatusChange(
         updated,
         statusLabelFor(order.type, to),
@@ -345,6 +353,10 @@ export class OrderWorkflowService {
       Date.now() + (dto.expiresInHours ?? QUOTE_DEFAULT_HOURS) * 60 * 60 * 1000,
     );
 
+    const chargeOnApproval = chargesGoodsOnApproval(order.type)
+      ? itemsTotalCny
+      : 0;
+
     const updated = await this.advance(
       order,
       OrderStatus.QUOTED,
@@ -362,6 +374,16 @@ export class OrderWorkflowService {
         quoteApprovedAt: null,
         quoteNote: dto.note,
         ...this.claim(order, userId),
+      },
+      {
+        title:
+          order.type === OrderType.CONSIGNMENT
+            ? 'Có báo cước mới'
+            : 'Có báo giá mới',
+        message:
+          chargeOnApproval > 0
+            ? `Đơn ${order.billOfLadingCode}: duyệt để trừ ¥${chargeOnApproval.toFixed(2)} từ ví. Hạn duyệt ${expiresAt.toLocaleString('vi-VN')}.`
+            : `Đơn ${order.billOfLadingCode} đã có báo giá. Hạn duyệt ${expiresAt.toLocaleString('vi-VN')}.`,
       },
     );
 
@@ -502,22 +524,24 @@ export class OrderWorkflowService {
       }
     }
 
+    // Work out the balance before the move so the customer's notification can
+    // carry it, rather than arriving as a bare status and a second message.
+    const due = (await this.amounts(order)).dueCny;
+
     const updated = await this.advance(
       order,
       OrderStatus.AT_VN_WAREHOUSE,
       dto.note ?? 'Hàng đã về kho Việt Nam',
       { warehouseId: dto.warehouseId, ...this.claim(order, userId) },
+      due > 0
+        ? {
+            title: 'Hàng đã về kho Việt Nam',
+            message: `Đơn ${order.billOfLadingCode} còn phải thanh toán ¥${due.toFixed(2)} trước khi giao.`,
+          }
+        : undefined,
     );
 
-    const amounts = await this.amounts(updated);
-    if (amounts.dueCny > 0 && updated.customerId) {
-      await this.notificationsService.notifyOrderStatusChange(
-        updated,
-        `Về kho Việt Nam. Còn phải thanh toán ¥${amounts.dueCny.toFixed(2)}`,
-      );
-    }
-
-    return { order: updated, amounts };
+    return { order: updated, amounts: await this.amounts(updated) };
   }
 
   /** Thu nốt phần còn thiếu rồi chuyển sang đã thanh toán. */
@@ -683,6 +707,12 @@ export class OrderWorkflowService {
         },
         include: ORDER_INCLUDE,
       });
+      await this.notifyStaff(
+        updated,
+        'Khách duyệt báo cước',
+        `Đơn ${updated.billOfLadingCode} đã được duyệt cước, có thể xuất hàng`,
+      );
+
       return { order: updated, amounts: await this.amounts(updated) };
     }
 
@@ -714,6 +744,12 @@ export class OrderWorkflowService {
         depositAmount: { increment: charge },
         quoteApprovedAt: new Date(),
       },
+    );
+
+    await this.notifyStaff(
+      updated,
+      'Khách duyệt báo giá',
+      `Đơn ${updated.billOfLadingCode} đã thu ¥${charge.toFixed(2)}, có thể xử lý tiếp`,
     );
 
     return { order: updated, amounts: await this.amounts(updated) };

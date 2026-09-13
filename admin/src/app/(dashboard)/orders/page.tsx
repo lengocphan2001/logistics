@@ -26,6 +26,13 @@ import { ordersService, type Order } from '@/services/orders.service';
 import { customersService, type Customer } from '@/services/customers.service';
 import { ORDER_STATUSES, orderStatusLabels } from '@/lib/order-status';
 import { ORDER_TYPES, orderTypeLabels } from '@/lib/order-type';
+import {
+  WORK_QUEUES,
+  WORK_QUEUE_ORDER,
+  type WorkQueueKey,
+} from '@/lib/order-workflow';
+import { useAuthStore } from '@/stores/auth.store';
+import { cn } from '@/lib/utils';
 import { apiErrorMessage } from '@/lib/api-error';
 import { downloadFile } from '@/lib/download';
 import { icon } from '@/lib/icon';
@@ -39,6 +46,10 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [queue, setQueue] = useState<WorkQueueKey>('all');
+  const [mineOnly, setMineOnly] = useState(false);
+
+  const currentUserId = useAuthStore((s) => s.user?.id);
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -86,6 +97,15 @@ export default function OrdersPage() {
     void fetchData();
   }, [fetchData]);
 
+  const queueStatuses = WORK_QUEUES[queue].statuses;
+  const visibleOrders = orders.filter((order) => {
+    if (queueStatuses.length > 0 && !queueStatuses.includes(order.status)) {
+      return false;
+    }
+    if (mineOnly && order.assignedToId !== currentUserId) return false;
+    return true;
+  });
+
   const deletion = useDeleteConfirm((id) => ordersService.remove(id), {
     successMessage: 'Xoá đơn hàng thành công',
     errorMessage: 'Không thể xoá đơn hàng',
@@ -124,6 +144,53 @@ export default function OrdersPage() {
           </div>
         }
       />
+
+      {/* Staff think in jobs, not in statuses: each tab is one job to pick up. */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--rule)] pb-3">
+        {WORK_QUEUE_ORDER.map((key) => {
+          const count =
+            WORK_QUEUES[key].statuses.length === 0
+              ? orders.length
+              : orders.filter((o) => WORK_QUEUES[key].statuses.includes(o.status))
+                  .length;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setQueue(key)}
+              aria-pressed={queue === key}
+              className={cn(
+                'rounded-[var(--radius-control)] border px-3 py-1.5 text-sm',
+                queue === key
+                  ? 'border-[var(--manifest-navy)] bg-[var(--manifest-navy)] text-white'
+                  : 'border-[var(--rule)] bg-[var(--sheet-white)] text-[var(--graphite)] hover:text-[var(--ink)]',
+              )}
+            >
+              {WORK_QUEUES[key].label}
+              <span data-numeric className="ml-2 text-xs opacity-80">
+                {count}
+              </span>
+            </button>
+          );
+        })}
+
+        {currentUserId && (
+          <button
+            type="button"
+            onClick={() => setMineOnly((prev) => !prev)}
+            aria-pressed={mineOnly}
+            className={cn(
+              'ml-auto rounded-[var(--radius-control)] border px-3 py-1.5 text-sm',
+              mineOnly
+                ? 'border-[var(--manifest-navy)] bg-[var(--manifest-navy)] text-white'
+                : 'border-[var(--rule)] bg-[var(--sheet-white)] text-[var(--graphite)] hover:text-[var(--ink)]',
+            )}
+          >
+            Việc của tôi
+          </button>
+        )}
+      </div>
 
       <FilterBar>
         <div className="w-full sm:max-w-xs">
@@ -167,7 +234,7 @@ export default function OrdersPage() {
       </FilterBar>
 
       <OrdersTable
-        orders={orders}
+        orders={visibleOrders}
         loading={loading}
         onEdit={openEdit}
         confirmingId={deletion.confirmingId}

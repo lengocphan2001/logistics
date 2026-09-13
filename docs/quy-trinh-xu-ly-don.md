@@ -175,7 +175,9 @@ endpoint riêng, tự kiểm tra trạng thái đầu vào và tự ghi `OrderEv
 
 ## 6. Tình trạng triển khai
 
-Giai đoạn 1, 2 và 3 đã làm xong ở phía backend:
+Cả sáu giai đoạn đã làm xong.
+
+**Backend**
 
 - `src/modules/orders/order-workflow.ts` giữ luồng của từng loại đơn, nhãn theo
   loại, và các hàm kiểm tra chuyển trạng thái.
@@ -183,10 +185,27 @@ Giai đoạn 1, 2 và 3 đã làm xong ở phía backend:
   bước một phương thức, tự tính tiền còn phải thu.
 - `src/modules/orders/order-workflow.controller.ts` và các route mới trong
   `customer-orders.controller.ts` mở các endpoint tương ứng.
-- Migration `20260913135338_order_workflow_steps` thêm ba trạng thái đơn, bảng
-  trạng thái từng dòng hàng, người phụ trách, kho Trung Quốc và các mốc báo giá.
+- `src/modules/orders/order-sla.service.ts` chạy mỗi 30 phút: huỷ đơn có báo giá
+  hết hạn và hoàn tiền, nhắc nhân viên những yêu cầu chờ báo giá quá bốn giờ.
+- Migration `20260913135338_order_workflow_steps` thêm ba trạng thái đơn, trạng
+  thái từng dòng hàng, người phụ trách, kho Trung Quốc và các mốc báo giá.
 
-Giai đoạn 4, 5 và 6 (giao diện admin, cổng khách và thông báo theo hạn) chưa làm.
+**Admin**
+
+- `src/lib/order-workflow.ts` ánh xạ câu trả lời của server thành nút bấm và
+  thành các hàng đợi công việc.
+- `src/components/orders/workflow/` gồm thanh hành động theo ngữ cảnh, sheet cho
+  từng bước, bảng công nợ, bảng sản phẩm sửa được theo dòng, và tiến trình.
+- Trang chi tiết đơn viết lại theo hệ thiết kế Dock.
+- Danh sách đơn lọc theo việc cần làm và theo người phụ trách, đánh dấu đơn quá
+  hạn báo giá.
+
+**Cổng khách hàng**
+
+- `src/components/portal/orders/QuotePanel.tsx` hiện báo giá cùng nút duyệt và
+  từ chối, nhắc nạp thêm khi ví không đủ.
+- `src/components/portal/orders/OrderProgress.tsx` vẽ đúng luồng của loại đơn.
+- Trang chi tiết đơn cho phép khách tự huỷ khi đơn chưa được xử lý.
 
 ## 7. Thứ tự làm
 

@@ -295,6 +295,32 @@ export class NotificationsService {
     this.emitOne(notification);
   }
 
+  /**
+   * A message written for the customer about one order, when the bare status
+   * name would not tell them what to do — a quote to approve, a balance to
+   * settle. Replaces the generic status line rather than adding to it.
+   */
+  async notifyOrderMessage(
+    order: OrderForNotification,
+    title: string,
+    message: string,
+  ) {
+    if (!order.customerId) return;
+
+    const notification = await this.prisma.notification.create({
+      data: {
+        recipientType: NotificationRecipientType.CUSTOMER,
+        recipientId: order.customerId,
+        type: NotificationType.ORDER_STATUS_UPDATED,
+        title,
+        message,
+        link: `/orders/${order.id}`,
+        orderId: order.id,
+      },
+    });
+    this.emitOne(notification);
+  }
+
   private emitMany(notifications: Notification[]) {
     for (const notification of notifications) {
       this.notificationsGateway.emitNotification(notification);

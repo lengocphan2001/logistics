@@ -36,8 +36,26 @@ export interface CustomerOrderEvent {
   createdAt: string;
 }
 
+export type OrderItemStatus =
+  | 'PENDING'
+  | 'PURCHASED'
+  | 'OUT_OF_STOCK'
+  | 'PRICE_CHANGED'
+  | 'REFUNDED';
+
+export const orderItemStatusLabels: Record<OrderItemStatus, string> = {
+  PENDING: 'Chờ mua',
+  PURCHASED: 'Đã mua',
+  OUT_OF_STOCK: 'Hết hàng',
+  PRICE_CHANGED: 'Đổi giá',
+  REFUNDED: 'Đã hoàn tiền',
+};
+
 export interface OrderItemLine {
   id: string;
+  status?: OrderItemStatus;
+  purchasedPriceCny?: number | string | null;
+  statusNote?: string | null;
   itemId: string;
   providerAlias: string;
   skuId?: string | null;
@@ -58,6 +76,47 @@ export interface CustomerOrderDetail extends CustomerOrder {
   shopName?: string | null;
   shopUrl?: string | null;
   itemsTotalCny?: number | string | null;
+  walletPaidAmount?: number | string;
+  feeTransfer?: number | string;
+  feeInsurance?: number | string;
+  feeExtra?: number | string;
+  quotedAt?: string | null;
+  quoteExpiresAt?: string | null;
+  quoteApprovedAt?: string | null;
+  quoteNote?: string | null;
+  sourceOrderCode?: string | null;
+  sourceTrackingCode?: string | null;
+  receiverName?: string;
+  receiverPhone?: string;
+  receiverAddress?: string;
+  weight?: number | string | null;
+  description?: string | null;
+  note?: string | null;
+}
+
+/** Tiền của một đơn, do backend tính. */
+export interface OrderAmounts {
+  goodsCny: number;
+  feesVnd: number;
+  feesCny: number;
+  paidCny: number;
+  dueCny: number;
+  overpaidCny: number;
+  exchangeRate: number;
+}
+
+export interface OrderStep {
+  status: OrderStatus;
+  label: string;
+}
+
+/** Đơn kèm tiền và các bước của đúng loại đơn đó. */
+export interface CustomerOrderSummary {
+  order: CustomerOrderDetail;
+  amounts: OrderAmounts;
+  flow: OrderStep[];
+  nextStatuses: OrderStep[];
+  statusLabel: string;
 }
 
 const BASE = '/customer/orders';
@@ -103,4 +162,17 @@ export const ordersService = {
 
   createRequest: (payload: CustomerOrderRequest) =>
     api.post<CustomerOrderDetail>(`${BASE}/request`, payload),
+
+  /** Đơn kèm công nợ và tiến trình theo đúng loại đơn. */
+  getSummary: (id: string) =>
+    api.get<CustomerOrderSummary>(`${BASE}/${id}/summary`),
+
+  approveQuote: (id: string) =>
+    api.post<CustomerOrderSummary>(`${BASE}/${id}/approve-quote`, {}),
+
+  rejectQuote: (id: string, reason?: string) =>
+    api.post<CustomerOrderSummary>(`${BASE}/${id}/reject-quote`, { reason }),
+
+  cancel: (id: string, reason?: string) =>
+    api.post<CustomerOrderSummary>(`${BASE}/${id}/cancel`, { reason }),
 };

@@ -1,354 +1,376 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import {
-  ArrowLeft,
-  Loader2,
-  Barcode,
-  Package,
-  User,
-  MapPin,
-  Wallet,
-  History,
-  ExternalLink,
-  ShoppingCart,
-} from 'lucide-react';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiErrorMessage } from '@/lib/api-error';
-import { ordersService, type Order } from '@/services/orders.service';
-import { walletTransactionsService, type WalletTransaction } from '@/services/wallet-transactions.service';
-import { orderStatusLabels } from '@/lib/order-status';
-import { orderTypeLabels, orderTypeBadgeColors } from '@/lib/order-type';
-import { formatCny } from '@/lib/currency';
+import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState } from '@/components/ui/loading-state';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { OrderActionBar } from '@/components/orders/workflow/OrderActionBar';
+import {
+  OrderActionModal,
+  type WarehouseOption,
+} from '@/components/orders/workflow/OrderActionModal';
+import { OrderAmountsPanel } from '@/components/orders/workflow/OrderAmountsPanel';
+import { OrderItemsPanel } from '@/components/orders/workflow/OrderItemsPanel';
+import { OrderTimeline } from '@/components/orders/workflow/OrderTimeline';
 import { WalletTransactionTable } from '@/components/wallet/wallet-transaction-table';
-import { SourcePropertyCopy } from '@/components/orders/SourcePropertyCopy';
+import { apiErrorMessage } from '@/lib/api-error';
+import { formatDateTime } from '@/lib/date';
+import { icon } from '@/lib/icon';
+import api from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { orderStatusBadgeColors } from '@/lib/order-status';
+import { orderTypeBadgeColors, orderTypeLabels } from '@/lib/order-type';
+import { isQuoteExpired, isQuoteOverdue, type OrderActionKey } from '@/lib/order-workflow';
+import { ordersService, type OrderSummary } from '@/services/orders.service';
+import {
+  walletTransactionsService,
+  type WalletTransaction,
+} from '@/services/wallet-transactions.service';
 
-const formatCurrency = (value: number | string) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value));
+type StaffOption = { id: string; name: string; role: string; status: string };
 
 export default function OrderDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const [order, setOrder] = useState<Order | null>(null);
+
+  const [summary, setSummary] = useState<OrderSummary | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
+  const [staff, setStaff] = useState<StaffOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [txLoading, setTxLoading] = useState(true);
-  const [walletAmount, setWalletAmount] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [action, setAction] = useState<OrderActionKey | null>(null);
+  const [assigning, setAssigning] = useState(false);
 
-  const loadOrder = async () => {
-    const res = await ordersService.getById(id);
-    setOrder(res.data);
-  };
-
-  const loadTransactions = async () => {
+  const loadTransactions = useCallback(async () => {
     try {
       const res = await walletTransactionsService.getAll({ orderId: id, limit: 50 });
       setTransactions(res.data.data ?? res.data);
     } finally {
       setTxLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
-    loadOrder()
-      .catch(() => toast.error('Không thể tải thông tin đơn hàng'))
-      .finally(() => setLoading(false));
-    loadTransactions();
-  }, [id]);
 
-  const handleWalletAction = async (type: 'ORDER_DEPOSIT' | 'ORDER_PAYMENT' | 'ORDER_REFUND') => {
-    const amount = Number(walletAmount);
-    if (!amount || amount <= 0) {
-      toast.error('Nhập số tiền ¥ hợp lệ');
-      return;
-    }
-    if (!order?.customer) {
-      toast.error('Đơn hàng chưa gắn khách hàng');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      if (type === 'ORDER_REFUND') {
-        await ordersService.refundWallet(order.id, { amount });
-        toast.success('Đã hoàn tiền vào ví khách hàng');
-      } else {
-        await ordersService.chargeWallet(order.id, { type, amount });
-        toast.success(type === 'ORDER_DEPOSIT' ? 'Đã trừ ví — đặt cọc' : 'Đã trừ ví — thanh toán đơn');
+    void (async () => {
+      try {
+        const [summaryRes, warehousesRes, staffRes] = await Promise.all([
+          ordersService.getSummary(id),
+          api.get('/warehouses'),
+          api.get('/users').catch(() => ({ data: [] })),
+        ]);
+        setSummary(summaryRes.data);
+        setWarehouses(warehousesRes.data);
+        setStaff((staffRes.data?.data ?? staffRes.data ?? []) as StaffOption[]);
+      } catch (err) {
+        toast.error(apiErrorMessage(err, 'Không thể tải thông tin đơn hàng'));
+      } finally {
+        setLoading(false);
       }
-      setWalletAmount('');
-      await Promise.all([loadOrder(), loadTransactions()]);
+    })();
+
+    void loadTransactions();
+  }, [id, loadTransactions]);
+
+  const applySummary = (next: OrderSummary) => {
+    setSummary(next);
+    void loadTransactions();
+  };
+
+  const handleAssign = async (value: string) => {
+    setAssigning(true);
+    try {
+      await ordersService.assign(id, value === 'none' ? null : value);
+      const res = await ordersService.getSummary(id);
+      setSummary(res.data);
+      toast.success('Đã cập nhật người phụ trách');
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Thao tác trên ví thất bại'));
+      toast.error(apiErrorMessage(err, 'Không đổi được người phụ trách'));
     } finally {
-      setSubmitting(false);
+      setAssigning(false);
     }
   };
 
   if (loading) {
+    return <LoadingState label="Đang tải đơn hàng" className="py-24" />;
+  }
+
+  if (!summary) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <EmptyState
+        title="Không tìm thấy đơn hàng"
+        hint="Đơn có thể đã bị xoá hoặc đường dẫn không đúng."
+      />
     );
   }
 
-  if (!order) {
-    return <div className="p-6 text-[var(--graphite)]">Không tìm thấy đơn hàng.</div>;
-  }
+  const { order, amounts, flow, statusLabel } = summary;
+  const overdue = isQuoteOverdue(order);
+  const expired = isQuoteExpired(order);
+  const activeStaff = staff.filter((s) => s.status === 'ACTIVE');
+
+  const copy = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success('Đã chép');
+    } catch {
+      toast.error('Trình duyệt không cho phép chép');
+    }
+  };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-5">
       <Link
         href="/orders"
-        className={cn(buttonVariants({ variant: 'ghost' }), 'gap-2 -ml-2')}
+        className={cn(buttonVariants({ variant: 'ghost' }), '-ml-2 gap-2')}
       >
-        <ArrowLeft className="w-4 h-4" /> Quay lại danh sách
+        <ArrowLeft {...icon('inline')} aria-hidden />
+        Quay lại danh sách
       </Link>
 
-      <div className="bg-card rounded-[var(--radius-panel)] border border-border p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-[var(--graphite)] flex items-center gap-1">
-              <Barcode className="w-4 h-4" /> Mã vận đơn
-            </p>
-            <h1 className="text-2xl font-bold font-mono">{order.billOfLadingCode}</h1>
-            <Badge variant="outline" className={`mt-2 ${orderTypeBadgeColors[order.type]}`}>
+      <PageHeader
+        title={order.billOfLadingCode}
+        description={`${orderTypeLabels[order.type]} — ${statusLabel}`}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className={orderTypeBadgeColors[order.type]}>
               {orderTypeLabels[order.type]}
             </Badge>
+            <Badge variant="outline" className={orderStatusBadgeColors[order.status]}>
+              {statusLabel}
+            </Badge>
           </div>
-          <Badge variant="outline">{orderStatusLabels[order.status]}</Badge>
-        </div>
+        }
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-          <div className="space-y-2">
-            <h3 className="font-semibold flex items-center gap-2">
-              <User className="w-4 h-4" /> Người gửi
-            </h3>
-            <p>{order.senderName}</p>
-            <p className="text-sm text-[var(--graphite)]">{order.senderPhone}</p>
-            <p className="text-sm flex items-start gap-1">
-              <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {order.senderAddress}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-semibold flex items-center gap-2">
-              <User className="w-4 h-4" /> Người nhận
-            </h3>
-            <p>{order.receiverName}</p>
-            <p className="text-sm text-[var(--graphite)]">{order.receiverPhone}</p>
-            <p className="text-sm flex items-start gap-1">
-              <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {order.receiverAddress}
-            </p>
-          </div>
-        </div>
-
-        {(order.sourceOrderCode || order.sourceTrackingCode) && (
-          /* Codes the customer supplied. Staff need them verbatim, so they are
-             shown in mono and never translated. */
-          <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
-            {order.sourceOrderCode && (
-              <div>
-                <p className="text-xs text-[var(--graphite)]">Mã đơn trên sàn</p>
-                <p className="font-mono text-sm font-semibold">{order.sourceOrderCode}</p>
-              </div>
-            )}
-            {order.sourceTrackingCode && (
-              <div>
-                <p className="text-xs text-[var(--graphite)]">
-                  Mã vận đơn nội địa Trung Quốc
-                </p>
-                <p className="font-mono text-sm font-semibold">
-                  {order.sourceTrackingCode}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
-          <div>
-            <p className="text-xs text-[var(--graphite)]">Phí vận chuyển</p>
-            <p className="font-semibold">{formatCurrency(order.feeTransfer)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-[var(--graphite)]">Tổng phí</p>
-            <p className="font-semibold text-primary">{formatCurrency(order.totalFee)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-[var(--graphite)]">Đã đặt cọc (¥)</p>
-            <p className="font-semibold">{formatCny((order as any).depositAmount ?? 0)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-[var(--graphite)]">Đã TT từ ví (¥)</p>
-            <p className="font-semibold">{formatCny((order as any).walletPaidAmount ?? 0)}</p>
-          </div>
-        </div>
-
-        {order.customer && (
-          <div className="pt-4 border-t">
-            <p className="text-sm text-[var(--graphite)]">Khách hàng</p>
-            <Link
-              href={`/customers/${order.customer.id}`}
-              className="font-medium text-primary hover:underline"
-            >
-              {order.customer.fullName} — {order.customer.phone}
-            </Link>
-          </div>
-        )}
-
-        {order.description && (
-          <div className="pt-4 border-t">
-            <p className="text-sm text-[var(--graphite)] flex items-center gap-1">
-              <Package className="w-4 h-4" /> Mô tả hàng hoá
-            </p>
-            <p>{order.description}</p>
-          </div>
-        )}
-
-        {/* Aggregator order items */}
-        {order.items && order.items.length > 0 && (
-          <div className="pt-4 border-t">
-            <p className="font-semibold flex items-center gap-2 mb-3">
-              <ShoppingCart className="w-4 h-4 text-primary" /> Sản phẩm đặt mua
-              {order.shopName && (
-                <span className="ml-1 text-sm font-normal text-[var(--graphite)]">
-                  — {order.shopName}
-                  {order.shopUrl && (
-                    <a href={order.shopUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline inline-flex items-center gap-0.5">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                </span>
-              )}
-            </p>
-            <div className="rounded-[var(--radius-panel)] border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-medium text-[var(--graphite)]">Sản phẩm</th>
-                    <th className="px-3 py-2 text-right font-medium text-[var(--graphite)] w-20">Đơn giá</th>
-                    <th className="px-3 py-2 text-right font-medium text-[var(--graphite)] w-16">SL</th>
-                    <th className="px-3 py-2 text-right font-medium text-[var(--graphite)] w-24">Thành tiền</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {order.items.map((item) => (
-                    <tr key={item.id} className="hover:bg-muted/20">
-                      <td className="px-3 py-2">
-                        <div className="flex items-start gap-2">
-                          {item.image && (
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="h-12 w-12 shrink-0 rounded object-cover border border-border"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
-                          )}
-                          <div className="min-w-0">
-                            <p className="line-clamp-2 text-sm">{item.title}</p>
-                            {item.properties && item.properties.length > 0 && (
-                              <>
-                                <p className="mt-0.5 text-xs text-[var(--graphite)]">
-                                  {item.properties.map((p) => `${p.name}: ${p.value}`).join(', ')}
-                                </p>
-                                <SourcePropertyCopy properties={item.properties} />
-                              </>
-                            )}
-                            {item.url && (
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline mt-0.5"
-                              >
-                                Xem nguồn <ExternalLink className="w-3 h-3" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-right font-medium">¥{Number(item.priceCny).toFixed(2)}</td>
-                      <td className="px-3 py-2 text-right">{item.quantity}</td>
-                      <td className="px-3 py-2 text-right font-bold text-primary">¥{Number(item.totalCny).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="border-t-2 border-border bg-muted/30">
-                  <tr>
-                    <td colSpan={3} className="px-3 py-2 text-right font-semibold">Tổng hàng:</td>
-                    <td className="px-3 py-2 text-right font-bold text-primary">
-                      ¥{order.items.reduce((s, i) => s + Number(i.totalCny), 0).toFixed(2)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {order.customer && (
-        <div className="bg-card rounded-[var(--radius-panel)] border border-border p-6 space-y-4">
-          <h3 className="font-semibold flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-primary" /> Thanh toán từ ví khách hàng
-          </h3>
-          <p className="text-sm text-[var(--graphite)]">
-            Trừ số dư ¥ của khách để đặt cọc hoặc thanh toán đơn. Mỗi thao tác được ghi vào lịch sử giao dịch.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 items-end">
-            <div className="space-y-1.5 flex-1 max-w-xs">
-              <Label>Số tiền (¥)</Label>
-              <Input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={walletAmount}
-                onChange={(e) => setWalletAmount(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-            <Button
-              variant="outline"
-              disabled={submitting}
-              onClick={() => handleWalletAction('ORDER_DEPOSIT')}
-            >
-              Đặt cọc
-            </Button>
-            <Button disabled={submitting} onClick={() => handleWalletAction('ORDER_PAYMENT')}>
-              Thanh toán đơn
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={submitting}
-              onClick={() => handleWalletAction('ORDER_REFUND')}
-            >
-              Hoàn tiền
-            </Button>
-          </div>
-        </div>
+      {(overdue || expired) && (
+        <p className="border border-[var(--seal-red)] bg-[var(--red-wash)] px-4 py-3 text-sm text-[var(--seal-red)]">
+          {overdue
+            ? 'Yêu cầu này đã chờ báo giá quá lâu.'
+            : 'Báo giá đã hết hạn, khách không duyệt được nữa. Hãy báo giá lại.'}
+        </p>
       )}
 
-      <div className="bg-card rounded-[var(--radius-panel)] border border-border overflow-hidden">
-        <div className="px-6 py-4 border-b font-semibold flex items-center gap-2">
-          <History className="w-4 h-4 text-primary" /> Lịch sử giao dịch đơn hàng
+      <section className="panel px-5 py-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="mb-3 font-heading text-base font-semibold text-[var(--ink)]">
+              Bước tiếp theo
+            </h2>
+            <OrderActionBar
+              summary={summary}
+              busy={assigning}
+              onAction={setAction}
+            />
+          </div>
+
+          <div className="w-full space-y-1.5 lg:w-64">
+            <Label htmlFor="order-assignee">Người phụ trách</Label>
+            <Select
+              value={order.assignedToId ?? 'none'}
+              onValueChange={(value) => void handleAssign(value)}
+            >
+              <SelectTrigger id="order-assignee" disabled={assigning}>
+                <SelectValue placeholder="Chưa giao" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Chưa giao</SelectItem>
+                {activeStaff.map((person) => (
+                  <SelectItem key={person.id} value={person.id}>
+                    {person.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <WalletTransactionTable
-          transactions={transactions}
-          loading={txLoading}
-          showCustomer={false}
-          emptyMessage="Chưa có giao dịch ví liên quan đơn này."
-        />
+      </section>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <section className="panel">
+            <h2 className="border-b border-[var(--rule)] px-5 py-3.5 font-heading text-base font-semibold text-[var(--ink)]">
+              Thông tin đơn
+            </h2>
+
+            <div className="grid grid-cols-1 gap-5 px-5 py-4 sm:grid-cols-2">
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--ink)]">Người gửi</h3>
+                <p className="mt-1 text-sm text-[var(--ink)]">{order.senderName}</p>
+                <p data-numeric className="text-sm text-[var(--graphite)]">
+                  {order.senderPhone}
+                </p>
+                <p data-prose className="text-sm">
+                  {order.senderAddress}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--ink)]">Người nhận</h3>
+                <p className="mt-1 text-sm text-[var(--ink)]">{order.receiverName}</p>
+                <p data-numeric className="text-sm text-[var(--graphite)]">
+                  {order.receiverPhone}
+                </p>
+                <p data-prose className="text-sm">
+                  {order.receiverAddress}
+                </p>
+              </div>
+            </div>
+
+            <dl className="grid grid-cols-1 gap-4 border-t border-[var(--rule)] px-5 py-4 sm:grid-cols-2">
+              {order.customer && (
+                <div>
+                  <dt className="text-xs text-[var(--graphite)]">Khách hàng</dt>
+                  <dd className="text-sm">
+                    <Link
+                      href={`/customers/${order.customer.id}`}
+                      className="font-medium text-[var(--manifest-navy)] hover:underline"
+                    >
+                      {order.customer.fullName}
+                    </Link>
+                    <span data-numeric className="ml-2 text-[var(--graphite)]">
+                      {order.customer.phone}
+                    </span>
+                  </dd>
+                </div>
+              )}
+
+              {order.assignedTo && (
+                <div>
+                  <dt className="text-xs text-[var(--graphite)]">Đang xử lý</dt>
+                  <dd className="text-sm text-[var(--ink)]">
+                    {order.assignedTo.name}
+                    {order.assignedAt && (
+                      <span data-numeric className="ml-2 text-xs text-[var(--graphite)]">
+                        {formatDateTime(order.assignedAt)}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              )}
+
+              {[
+                ['Mã đơn khách cung cấp', order.sourceOrderCode],
+                ['Mã đơn nhân viên mua', order.purchaseOrderCode],
+                ['Mã vận đơn nội địa Trung Quốc', order.sourceTrackingCode],
+              ]
+                .filter(([, value]) => Boolean(value))
+                .map(([label, value]) => (
+                  <div key={label as string}>
+                    <dt className="text-xs text-[var(--graphite)]">{label}</dt>
+                    <dd className="flex items-center gap-2">
+                      <span data-numeric className="text-sm font-semibold text-[var(--ink)]">
+                        {value}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void copy(String(value))}
+                        aria-label={`Chép ${label}`}
+                        className="text-[var(--graphite)] hover:text-[var(--ink)]"
+                      >
+                        <Copy {...icon('inline')} aria-hidden />
+                      </button>
+                    </dd>
+                  </div>
+                ))}
+
+              {order.cnWarehouse && (
+                <div>
+                  <dt className="text-xs text-[var(--graphite)]">Kho Trung Quốc</dt>
+                  <dd className="text-sm text-[var(--ink)]">{order.cnWarehouse.name}</dd>
+                </div>
+              )}
+              {order.warehouse && (
+                <div>
+                  <dt className="text-xs text-[var(--graphite)]">Kho Việt Nam</dt>
+                  <dd className="text-sm text-[var(--ink)]">{order.warehouse.name}</dd>
+                </div>
+              )}
+              {order.weight && (
+                <div>
+                  <dt className="text-xs text-[var(--graphite)]">Khối lượng</dt>
+                  <dd data-numeric className="text-sm text-[var(--ink)]">
+                    {Number(order.weight)} kg
+                  </dd>
+                </div>
+              )}
+              {order.quoteExpiresAt && (
+                <div>
+                  <dt className="text-xs text-[var(--graphite)]">Báo giá hết hạn</dt>
+                  <dd data-numeric className="text-sm text-[var(--ink)]">
+                    {formatDateTime(order.quoteExpiresAt)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+
+            {(order.description || order.note) && (
+              <div className="border-t border-[var(--rule)] px-5 py-4">
+                {order.description && (
+                  <p data-prose className="text-sm">
+                    {order.description}
+                  </p>
+                )}
+                {order.note && (
+                  <p data-prose className="mt-2 text-sm text-[var(--graphite)]">
+                    {order.note}
+                  </p>
+                )}
+              </div>
+            )}
+          </section>
+
+          <OrderItemsPanel
+            order={order}
+            editable={order.status !== 'CANCELLED' && order.status !== 'COMPLETED'}
+            onChanged={applySummary}
+          />
+
+          <section className="panel overflow-hidden">
+            <h2 className="border-b border-[var(--rule)] px-5 py-3.5 font-heading text-base font-semibold text-[var(--ink)]">
+              Giao dịch ví của đơn
+            </h2>
+            <WalletTransactionTable
+              transactions={transactions}
+              loading={txLoading}
+              showCustomer={false}
+              emptyMessage="Chưa có giao dịch ví liên quan đơn này."
+            />
+          </section>
+        </div>
+
+        <div className="space-y-5">
+          <OrderAmountsPanel order={order} amounts={amounts} />
+          <OrderTimeline
+            flow={flow}
+            currentStatus={order.status}
+            events={order.events ?? []}
+          />
+        </div>
       </div>
+
+      <OrderActionModal
+        action={action}
+        summary={summary}
+        warehouses={warehouses}
+        onClose={() => setAction(null)}
+        onDone={applySummary}
+      />
     </div>
   );
 }

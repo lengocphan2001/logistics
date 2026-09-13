@@ -18,6 +18,7 @@ import { orderStatusBadgeColors, orderStatusLabels } from '@/lib/order-status';
 import { orderTypeBadgeColors, orderTypeLabels } from '@/lib/order-type';
 import { formatVnd } from '@/lib/currency';
 import { formatDate } from '@/lib/date';
+import { isQuoteExpired, isQuoteOverdue } from '@/lib/order-workflow';
 
 type OrdersTableProps = {
   orders: Order[];
@@ -106,10 +107,20 @@ export function OrdersTable({
                     Vận chuyển {formatVnd(order.feeTransfer)}
                   </p>
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-normal">
                   <Badge variant="outline" className={orderStatusBadgeColors[order.status]}>
                     {orderStatusLabels[order.status]}
                   </Badge>
+                  {(isQuoteOverdue(order) || isQuoteExpired(order)) && (
+                    <p className="mt-1 text-xs text-[var(--seal-red)]">
+                      {isQuoteExpired(order) ? 'Báo giá hết hạn' : 'Quá hạn báo giá'}
+                    </p>
+                  )}
+                  {order.assignedTo && (
+                    <p className="mt-1 text-xs text-[var(--graphite)]">
+                      {order.assignedTo.name}
+                    </p>
+                  )}
                 </TableCell>
                 <TableCell className="text-xs text-[var(--graphite)]">
                   {formatDate(order.createdAt)}

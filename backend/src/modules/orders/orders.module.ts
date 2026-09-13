@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { OrderWorkflowService } from './order-workflow.service';
+import { OrderSlaService } from './order-sla.service';
 import { OrdersController } from './orders.controller';
 import { OrderWorkflowController } from './order-workflow.controller';
 import { CustomerOrdersController } from './customer-orders.controller';
@@ -23,7 +24,7 @@ import { SettingsModule } from '../settings/settings.module';
     OrderWorkflowController,
     CustomerOrdersController,
   ],
-  providers: [OrdersService, OrderWorkflowService],
+  providers: [OrdersService, OrderWorkflowService, OrderSlaService],
   exports: [OrdersService, OrderWorkflowService],
 })
 export class OrdersModule {}

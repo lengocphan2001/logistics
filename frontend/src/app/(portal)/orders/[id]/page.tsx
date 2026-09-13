@@ -3,51 +3,86 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Loader2, ExternalLink } from 'lucide-react';
-import { ordersService, type CustomerOrderDetail } from '@/services/orders.service';
+import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { LoadingState } from '@/components/ui/loading-state';
 import { ProductImage } from '@/components/shop/ProductImage';
 import { ReorderButton } from '@/components/portal/ReorderButton';
+import { OrderProgress } from '@/components/portal/orders/OrderProgress';
+import { QuotePanel } from '@/components/portal/orders/QuotePanel';
+import { apiErrorMessage } from '@/lib/api-error';
 import { orderTypeLabels } from '@/lib/order-type';
-import { orderStatusBadgeColors, orderStatusLabels } from '@/lib/order-status';
-import { formatCny } from '@/lib/currency';
+import { orderStatusBadgeColors } from '@/lib/order-status';
+import { formatCny, formatVnd } from '@/lib/currency';
 import { formatDateTime } from '@/lib/date';
-import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useCustomerProfile } from '@/hooks/use-customer-profile';
+import {
+  ordersService,
+  orderItemStatusLabels,
+  type CustomerOrderSummary,
+} from '@/services/orders.service';
+
+/** Khách tự huỷ được khi đơn chưa được nhân viên xử lý. */
+const CANCELLABLE = ['NEW_REQUEST', 'QUOTED', 'AWAITING_CN_ARRIVAL'];
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
-  const [order, setOrder] = useState<CustomerOrderDetail | null>(null);
+  const [summary, setSummary] = useState<CustomerOrderSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const { refresh: refreshProfile } = useCustomerProfile();
 
   useEffect(() => {
     if (!params.id) return;
     ordersService
-      .getMyById(params.id)
-      .then((res) => setOrder(res.data))
-      .catch(() => setError('Không tìm thấy đơn hàng'))
+      .getSummary(params.id)
+      .then((res) => setSummary(res.data))
+      .catch((err) => setError(apiErrorMessage(err, 'Không tìm thấy đơn hàng')))
       .finally(() => setLoading(false));
   }, [params.id]);
 
+  const cancel = async () => {
+    if (!summary) return;
+    setCancelling(true);
+    try {
+      const res = await ordersService.cancel(summary.order.id);
+      setSummary(res.data);
+      setConfirmCancel(false);
+      void refreshProfile();
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Không huỷ được đơn hàng'));
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--manifest-navy)]" />
-      </div>
-    );
+    return <LoadingState label="Đang tải đơn hàng" className="py-24" />;
   }
 
-  if (error || !order) {
+  if (error && !summary) {
     return (
       <div className="py-6 text-center">
-        <p className="text-[var(--graphite)]">{error || 'Không tìm thấy đơn hàng'}</p>
-        <Link href="/orders" className={cn(buttonVariants({ variant: 'outline' }), 'mt-4 inline-flex')}>
+        <p className="text-[var(--graphite)]">{error}</p>
+        <Link
+          href="/orders"
+          className={cn(buttonVariants({ variant: 'outline' }), 'mt-4 inline-flex')}
+        >
           Quay lại danh sách
         </Link>
       </div>
     );
   }
+
+  if (!summary) return null;
+
+  const { order, amounts, flow, statusLabel } = summary;
+  const awaitingQuote = order.status === 'QUOTED' && !order.quoteApprovedAt;
+  const canCancel = CANCELLABLE.includes(order.status);
 
   return (
     <div className="space-y-6">
@@ -55,51 +90,93 @@ export default function OrderDetailPage() {
         href="/orders"
         className="inline-flex items-center gap-1.5 text-sm text-[var(--manifest-navy)] hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="size-4" aria-hidden />
         Danh sách đơn hàng
       </Link>
 
-      <div className="rounded-[var(--radius-panel)] border border-[var(--rule)] bg-[var(--sheet-white)] p-4  sm:p-6">
+      <div className="border border-[var(--rule)] bg-[var(--sheet-white)] p-4 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-[var(--graphite)]">
+            <p className="text-sm text-[var(--graphite)]">
               {orderTypeLabels[order.type as keyof typeof orderTypeLabels]}
             </p>
-            <h1 className="mt-1 break-all font-mono text-lg font-bold sm:text-xl">{order.billOfLadingCode}</h1>
-            <p className="mt-1 text-sm text-[var(--graphite)]">
+            <h1 className="mt-1 break-all font-mono text-lg font-bold sm:text-xl">
+              {order.billOfLadingCode}
+            </h1>
+            <p data-numeric className="mt-1 text-sm text-[var(--graphite)]">
               Tạo lúc {formatDateTime(order.createdAt)}
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
             <Badge variant="outline" className={orderStatusBadgeColors[order.status]}>
-              {orderStatusLabels[order.status]}
+              {statusLabel}
             </Badge>
             <ReorderButton order={order} />
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3 sm:gap-4">
-          <div className="rounded-[var(--radius-panel)] bg-[var(--wash)]/60 p-4">
-            <p className="text-xs text-[var(--graphite)]">Tổng phí</p>
-            <p data-numeric className="mt-1 text-lg font-bold">{formatCny(order.totalFee)}</p>
+        <dl className="mt-6 grid gap-3 sm:grid-cols-3 sm:gap-4">
+          <div className="bg-[var(--wash)]/60 p-4">
+            <dt className="text-xs text-[var(--graphite)]">Tiền hàng</dt>
+            <dd data-numeric className="mt-1 text-lg font-bold">
+              {formatCny(amounts.goodsCny)}
+            </dd>
           </div>
-          <div className="rounded-[var(--radius-panel)] bg-[var(--wash)]/60 p-4">
-            <p className="text-xs text-[var(--graphite)]">Đã cọc</p>
-            <p data-numeric className="mt-1 text-lg font-bold">{formatCny(order.depositAmount)}</p>
+          <div className="bg-[var(--wash)]/60 p-4">
+            <dt className="text-xs text-[var(--graphite)]">Phí vận chuyển</dt>
+            <dd data-numeric className="mt-1 text-lg font-bold">
+              {formatVnd(amounts.feesVnd)}
+            </dd>
           </div>
-          <div className="rounded-[var(--radius-panel)] bg-[var(--wash)]/60 p-4">
-            <p className="text-xs text-[var(--graphite)]">Giá trị khai báo</p>
-            <p data-numeric className="mt-1 text-lg font-bold">{formatCny(order.declaredValue)}</p>
+          <div className="bg-[var(--wash)]/60 p-4">
+            <dt className="text-xs text-[var(--graphite)]">
+              {amounts.dueCny > 0 ? 'Còn phải trả' : 'Đã thanh toán'}
+            </dt>
+            <dd
+              data-numeric
+              className={
+                amounts.dueCny > 0
+                  ? 'mt-1 text-lg font-bold text-[var(--seal-red)]'
+                  : 'mt-1 text-lg font-bold text-[var(--ledger-green)]'
+              }
+            >
+              {formatCny(amounts.dueCny > 0 ? amounts.dueCny : amounts.paidCny)}
+            </dd>
           </div>
-        </div>
+        </dl>
 
-        {/* Order Items (Mua hộ) */}
+        {(order.sourceOrderCode || order.sourceTrackingCode) && (
+          <dl className="mt-4 grid gap-3 border-t border-[var(--rule)] pt-4 sm:grid-cols-2">
+            {order.sourceOrderCode && (
+              <div>
+                <dt className="text-xs text-[var(--graphite)]">Mã đơn trên sàn</dt>
+                <dd data-numeric className="text-sm font-semibold">
+                  {order.sourceOrderCode}
+                </dd>
+              </div>
+            )}
+            {order.sourceTrackingCode && (
+              <div>
+                <dt className="text-xs text-[var(--graphite)]">
+                  Mã vận đơn nội địa Trung Quốc
+                </dt>
+                <dd data-numeric className="text-sm font-semibold">
+                  {order.sourceTrackingCode}
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
+
         {order.items && order.items.length > 0 && (
           <div className="mt-8">
-            <h2 className="mb-4 font-heading text-base font-semibold">Sản phẩm đặt mua</h2>
-            <div className="space-y-3">
+            <h2 className="mb-4 font-heading text-base font-semibold">Sản phẩm</h2>
+            <ul className="space-y-3">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 rounded-[var(--radius-panel)] border border-[var(--rule)] p-3">
+                <li
+                  key={item.id}
+                  className="flex items-start gap-3 border border-[var(--rule)] p-3"
+                >
                   {item.image && (
                     <ProductImage
                       src={item.image}
@@ -110,16 +187,18 @@ export default function OrderDetailPage() {
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="line-clamp-2 text-sm font-medium text-[var(--ink)]">{item.title}</p>
+                      <p className="line-clamp-2 text-sm font-medium text-[var(--ink)]">
+                        {item.title}
+                      </p>
                       {item.url && (
                         <a
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="shrink-0 text-[var(--manifest-navy)] hover:underline"
-                          title="Xem nguồn"
+                          aria-label="Xem nguồn"
                         >
-                          <ExternalLink className="h-4 w-4" />
+                          <ExternalLink className="size-4" aria-hidden />
                         </a>
                       )}
                     </div>
@@ -128,42 +207,102 @@ export default function OrderDetailPage() {
                         {item.properties.map((p) => `${p.name}: ${p.value}`).join(', ')}
                       </p>
                     )}
+                    {item.status && item.status !== 'PENDING' && (
+                      <p
+                        className={
+                          item.status === 'OUT_OF_STOCK'
+                            ? 'mt-1 text-xs text-[var(--seal-red)]'
+                            : 'mt-1 text-xs text-[var(--graphite)]'
+                        }
+                      >
+                        {orderItemStatusLabels[item.status]}
+                        {item.statusNote ? ` — ${item.statusNote}` : ''}
+                      </p>
+                    )}
                     <div className="mt-1.5 flex items-center justify-between text-sm">
                       <span data-numeric className="text-[var(--graphite)]">
-                        {item.quantity} × ¥{Number(item.priceCny).toFixed(2)}
+                        {item.quantity} ×{' '}
+                        {formatCny(Number(item.purchasedPriceCny ?? item.priceCny))}
                       </span>
-                      <span data-numeric className="font-bold text-[var(--seal-red)]">
-                        ¥{Number(item.totalCny).toFixed(2)}
+                      <span data-numeric className="font-bold text-[var(--ink)]">
+                        {formatCny(
+                          Number(item.purchasedPriceCny ?? item.priceCny) *
+                            item.quantity,
+                        )}
                       </span>
                     </div>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
-            <div className="mt-3 flex justify-end text-sm font-bold text-[var(--seal-red)]">
-              Tổng hàng: ¥{order.items.reduce((s, i) => s + Number(i.totalCny), 0).toFixed(2)}
-            </div>
+            </ul>
           </div>
         )}
 
-        {order.events && order.events.length > 0 && (
-          <div className="mt-8">
-            <h2 className="mb-4 font-heading text-base font-semibold">Lịch sử trạng thái</h2>
-            <ol className="space-y-3 border-l-2 border-[var(--manifest-navy)]/25 pl-4">
-              {order.events.map((event) => (
-                <li key={event.id} className="relative">
-                  <span className="absolute -left-[1.35rem] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--manifest-navy)]" />
-                  <p className="text-sm font-medium">{orderStatusLabels[event.status]}</p>
-                  {event.note && <p className="text-xs text-[var(--graphite)]">{event.note}</p>}
-                  <p className="text-[11px] text-[var(--graphite)]">
-                    {formatDateTime(event.createdAt)}
-                  </p>
-                </li>
-              ))}
-            </ol>
+        {canCancel && (
+          <div className="mt-8 border-t border-[var(--rule)] pt-4">
+            {confirmCancel ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <p data-prose className="text-sm">
+                  Huỷ đơn này? Số tiền đã thu sẽ hoàn về ví.
+                </p>
+                <Button
+                  variant="destructive"
+                  disabled={cancelling}
+                  onClick={() => void cancel()}
+                >
+                  {cancelling ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    'Xác nhận huỷ'
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={cancelling}
+                  onClick={() => setConfirmCancel(false)}
+                >
+                  Không huỷ
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" onClick={() => setConfirmCancel(true)}>
+                Huỷ đơn hàng
+              </Button>
+            )}
+            {error && (
+              <p className="mt-2 text-sm text-[var(--seal-red)]" role="alert">
+                {error}
+              </p>
+            )}
           </div>
         )}
       </div>
+
+      {awaitingQuote && <QuotePanel summary={summary} onDone={setSummary} />}
+
+      <OrderProgress
+        flow={flow}
+        currentStatus={order.status}
+        events={order.events ?? []}
+      />
+
+      {order.events && order.events.length > 0 && (
+        <section className="border border-[var(--rule)] bg-[var(--sheet-white)] p-4 sm:p-6">
+          <h2 className="font-heading text-base font-semibold text-[var(--ink)]">
+            Lịch sử cập nhật
+          </h2>
+          <ol className="mt-4 space-y-3">
+            {order.events.map((event) => (
+              <li key={event.id}>
+                <p className="text-sm text-[var(--ink)]">{event.note ?? statusLabel}</p>
+                <p data-numeric className="text-xs text-[var(--graphite)]">
+                  {formatDateTime(event.createdAt)}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </div>
   );
 }

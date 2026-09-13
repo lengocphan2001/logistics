@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './database/prisma.module';
@@ -23,6 +24,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+
+    // Nền cho các tác vụ theo giờ: hạn báo giá, nhắc việc quá hạn.
+    ScheduleModule.forRoot(),
 
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 60_000, limit: 30 }, // 30 req/min default

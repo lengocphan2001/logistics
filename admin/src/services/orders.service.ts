@@ -40,7 +40,13 @@ export interface Order {
   customerId?: string | null;
   depositAmount?: number | string;
   walletPaidAmount?: number | string;
-  customer?: { id: string; fullName: string; phone: string; username?: string } | null;
+  customer?: {
+    id: string;
+    fullName: string;
+    phone: string;
+    username?: string;
+    balance?: number | string;
+  } | null;
   warehouseId?: string | null;
   warehouse?: { id: string; name: string; code: string } | null;
   // Taobao/1688 aggregator fields
@@ -50,12 +56,82 @@ export interface Order {
   shopUrl?: string | null;
   itemsTotalCny?: number | string | null;
   items?: AdminOrderItem[];
+  events?: OrderEvent[];
+  /** Mã đơn nhân viên mua được trên sàn. */
+  purchaseOrderCode?: string | null;
+  assignedToId?: string | null;
+  assignedTo?: { id: string; name: string; email: string } | null;
+  assignedAt?: string | null;
+  cnWarehouseId?: string | null;
+  cnWarehouse?: { id: string; name: string; code: string } | null;
+  quotedAt?: string | null;
+  quoteExpiresAt?: string | null;
+  quoteApprovedAt?: string | null;
+  quoteNote?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface OrderEvent {
+  id: string;
+  status: OrderStatus;
+  note?: string | null;
+  location?: string | null;
+  createdAt: string;
+}
+
+/** Tiền của một đơn, do backend tính. */
+export interface OrderAmounts {
+  goodsCny: number;
+  feesVnd: number;
+  feesCny: number;
+  paidCny: number;
+  dueCny: number;
+  overpaidCny: number;
+  exchangeRate: number;
+}
+
+export interface OrderStep {
+  status: OrderStatus;
+  label: string;
+}
+
+/** Đơn kèm tiền và các bước hợp lệ kế tiếp. */
+export interface OrderSummary {
+  order: Order;
+  amounts: OrderAmounts;
+  flow: OrderStep[];
+  nextStatuses: OrderStep[];
+  statusLabel: string;
+}
+
+export interface OrderItemUpdate {
+  id: string;
+  status: OrderItemStatus;
+  purchasedPriceCny?: number;
+  statusNote?: string;
+}
+
+export type OrderItemStatus =
+  | 'PENDING'
+  | 'PURCHASED'
+  | 'OUT_OF_STOCK'
+  | 'PRICE_CHANGED'
+  | 'REFUNDED';
+
+export const orderItemStatusLabels: Record<OrderItemStatus, string> = {
+  PENDING: 'Chưa mua',
+  PURCHASED: 'Đã mua',
+  OUT_OF_STOCK: 'Hết hàng',
+  PRICE_CHANGED: 'Đổi giá',
+  REFUNDED: 'Đã hoàn tiền',
+};
+
 export interface AdminOrderItem {
   id: string;
+  status: OrderItemStatus;
+  purchasedPriceCny?: number | string | null;
+  statusNote?: string | null;
   itemId: string;
   providerAlias: string;
   skuId?: string | null;
@@ -118,4 +194,50 @@ export const ordersService = {
   ) => api.post(`${BASE}/${id}/wallet/charge`, data),
   refundWallet: (id: string, data: { amount: number; note?: string }) =>
     api.post(`${BASE}/${id}/wallet/refund`, data),
+
+  // --- Các bước xử lý đơn. Mỗi bước tự quyết trạng thái kết quả. ---
+  getSummary: (id: string) => api.get<OrderSummary>(`${BASE}/${id}/summary`),
+  assign: (id: string, assignedToId: string | null) =>
+    api.post<Order>(`${BASE}/${id}/assign`, { assignedToId }),
+  quote: (
+    id: string,
+    data: {
+      itemsTotalCny?: number;
+      feeTransfer?: number;
+      feeInsurance?: number;
+      feeExtra?: number;
+      expiresInHours?: number;
+      note?: string;
+    },
+  ) => api.post<OrderSummary>(`${BASE}/${id}/quote`, data),
+  purchase: (
+    id: string,
+    data: { purchaseOrderCode?: string; items?: OrderItemUpdate[]; note?: string },
+  ) => api.post<OrderSummary>(`${BASE}/${id}/purchase`, data),
+  cnReceive: (
+    id: string,
+    data: {
+      cnWarehouseId?: string;
+      weight?: number;
+      length?: number;
+      width?: number;
+      height?: number;
+      sourceTrackingCode?: string;
+      note?: string;
+    },
+  ) => api.post<OrderSummary>(`${BASE}/${id}/cn-receive`, data),
+  depart: (id: string, data: { estimatedDelivery?: string; note?: string }) =>
+    api.post<OrderSummary>(`${BASE}/${id}/depart`, data),
+  vnReceive: (id: string, data: { warehouseId?: string; note?: string }) =>
+    api.post<OrderSummary>(`${BASE}/${id}/vn-receive`, data),
+  settle: (id: string, data: { amount?: number; note?: string }) =>
+    api.post<OrderSummary>(`${BASE}/${id}/settle`, data),
+  requestDelivery: (id: string, data: { note?: string }) =>
+    api.post<OrderSummary>(`${BASE}/${id}/request-delivery`, data),
+  deliver: (id: string, data: { driverId?: string; note?: string }) =>
+    api.post<OrderSummary>(`${BASE}/${id}/deliver`, data),
+  cancel: (id: string, data: { reason: string; refund?: boolean }) =>
+    api.post<OrderSummary>(`${BASE}/${id}/cancel`, data),
+  updateItems: (id: string, items: OrderItemUpdate[]) =>
+    api.patch<OrderSummary>(`${BASE}/${id}/items`, { items }),
 };
